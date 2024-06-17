@@ -1,7 +1,4 @@
 from flask import Flask
-import requests
-import json
-import re
 from config import headers, unicode_dict
 from utils import search, parse_song
 
@@ -12,20 +9,22 @@ app = Flask(__name__)
 def get_songs(
     name, start_page=3, per_page=2, page_limit=5, page_increment=1, features=True
 ):
-    """Get list of song data - title, features, path, and lyrics for an artist
+    """Get an artist's song data as a list - title, features, path, and lyrics
     Parameters:
-    name(str): The artist name for request/search
+    name(str): Input string of artist's name
     start_page(int): Optional starting page parameter for request
     per_page(int): Optional # of results per page parameter for request
     page_limit(int): Optional limit on # of pages requested
     page_increment(int): Optional # of pages incrementented by between requests
-    features(bool): T/F flag to get featured artists
+    features(bool): Optional boolean flag to get featured artis
     Returns:
     song_data(list(list)): Title, primary artists, featured artists, path, and lyrics for each song found
     """
     params = {"per_page": per_page, "page": start_page}
-    song_data = []  # List to store artist's song lyrics and metadata
+    # List to store artist's song data
+    song_data = []
     page_count = 0
+    # Return song data when page limit is reached
     while page_count <= page_limit:
         # Search Genius API for artist name
         response = search(name, params)
@@ -46,23 +45,40 @@ def get_featured_artists(
     features=True,
     features_limit=10,
 ):
+    """Get a dictionary of frequency counts of artist's collaborators
+    Parameters:
+    name(str): Input string of artist's name
+    start_page(int): Optional starting page parameter for request
+    per_page(int): Optional # of results per page parameter for request
+    page_limit(int): Optional limit on # of pages requested
+    page_increment(int): Optional # of pages incrementented by between requests
+    features(bool): Optional boolean flag to get featured artist
+    features_limit(int): Optional limit on # of collaborators pulled
+    Returns:
+    artist_count(dict): Dictionary mapping collaborator names to the number of songs they have with the input artist
+    """
+    # Dictionary to store collaboration frequency
     artist_count = {}
+    # Get song data for input artist
     song_data = get_songs(
         name, start_page, per_page, page_limit, page_increment, features
     )
+    # Keep track of current song index
     song_index = 0
+
     while len(artist_count) <= features_limit:
         primary_artists = featured_artists = []
         if song_data:
             primary_artists = song_data[song_index][2]
             featured_artists = song_data[song_index][1]
+        # Add primary artist collaborators to dictionary
         for artist in primary_artists:
             artist = artist.strip()
             if artist not in artist_count:
                 artist_count[artist] = 1
             else:
                 artist_count[artist] += 1
-
+        # Add featured artist collaborators to dictionary
         for feature in featured_artists:
             feature = feature.strip()
             if feature not in artist_count:
@@ -70,7 +86,6 @@ def get_featured_artists(
             else:
                 artist_count[feature] += 1
         song_index += 1
-
     return artist_count
 
 

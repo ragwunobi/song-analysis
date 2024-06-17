@@ -53,7 +53,6 @@ def parse_song(response, song_data=[], features=True):
     for song in response["hits"]:
         result = song["result"]
         title = path = ""
-
         # Get song title from response
         if result["full_title"]:
             # Replace unicode expressions from the title
