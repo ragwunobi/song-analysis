@@ -24,21 +24,18 @@ def search(keyword, params={}):
         raise SystemExit(error)
 
 
-def split_artists(name, delimiter=["&", ","]):
+def split_artists(name, delimiters=r",|&"):
     """Split a delimited string of artists names into an array
     Parameters:
     name(string): An input string of artist name(s)
-    delimiter(list): List of characters that could delimit artists names in input string
+    delimiter(str): Regex string of delimiters to split on 
     Returns:
     artists(list): A list of individual artist names parsed from input string
     """
-    # Find which character is used as a delimiter
-    for char in delimiter:
-        if name.find(char) != -1:
-            # Split name into list of individual artist names
-            artists = name.split(char)
-            return artists
-
+    # Split name into list of individual artist names
+    artists = re.split(delimiters, name)
+    return artists
+    
 
 def parse_song(response, song_data=[], features=True):
     """Get title, path, and lyrics for each song in a response object

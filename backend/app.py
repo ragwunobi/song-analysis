@@ -45,7 +45,7 @@ def get_featured_artists(
     features=True,
     features_limit=10,
 ):
-    """Get a dictionary of frequency counts of artist's collaborators
+    """Get a dictionary that maps collaborator names to the names and number of songs they have with input artist
     Parameters:
     name(str): Input string of artist's name
     start_page(int): Optional starting page parameter for request
@@ -55,7 +55,7 @@ def get_featured_artists(
     features(bool): Optional boolean flag to get featured artist
     features_limit(int): Optional limit on # of collaborators pulled
     Returns:
-    artist_count(dict): Dictionary mapping collaborator names to the number of songs they have with the input artist
+    artist_count(dict): Dictionary mapping collaborator names to the names and number of songs they have with the input artist
     """
     # Dictionary to store collaboration frequency
     collaborator_freq = {}
@@ -65,28 +65,39 @@ def get_featured_artists(
     )
     # Keep track of current song index
     song_index = 0
-
     while len(collaborator_freq) <= features_limit:
         primary_artists = featured_artists = []
         if song_data:
+            title = song_data[song_index][0]
             primary_artists = song_data[song_index][2]
             featured_artists = song_data[song_index][1]
         # Add primary artist collaborators to dictionary
-        for primary in primary_artists:
-            primary = primary.strip()
-            if primary not in collaborator_freq:
-                collaborator_freq[primary] = 1
-            else:
-                collaborator_freq[primary] += 1
+        generate_collaborator_freq(name, title, primary_artists, collaborator_freq)
         # Add featured artist collaborators to dictionary
-        for feature in featured_artists:
-            feature = feature.strip()
-            if feature not in collaborator_freq:
-                collaborator_freq[feature] = 1
-            else:
-                collaborator_freq[feature] += 1
+        generate_collaborator_freq(name, title, featured_artists, collaborator_freq)
         song_index += 1
     return collaborator_freq
+
+
+def generate_collaborator_freq(name, title, artists, collaborator_freq):
+    """Helper function to convert a list of artists into a dictionary that counts their frequency and lists song titles
+    Parameters:
+    name(str): Input string of main artist's name
+    title(str): Input title of song the artist and collaborator are on
+    artist(list): List of artists that collaborated with input name artist
+    collaborator_freq: Dictionary of frequency counts of artist's collaborators
+    """
+    # Add collaborators to dictionary
+    for collaborator in artists:
+        collaborator = collaborator.strip()
+        # Do not include input artist as a collaborator
+        if name.lower().strip() == collaborator.lower():
+            continue
+        if collaborator not in collaborator_freq:
+            collaborator_freq[collaborator] = [1, [title]]
+        else:
+            collaborator_freq[collaborator][0] += 1
+            collaborator_freq[collaborator][1].append(title)
 
 
 if __name__ == "__main__":
