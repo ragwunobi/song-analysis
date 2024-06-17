@@ -2,11 +2,10 @@ from flask import Flask
 import requests
 import json
 import re
-from config import headers, unicode_dict 
-from utils import search, parse_song 
+from config import headers, unicode_dict
+from utils import search, parse_song
 
 app = Flask(__name__)
-
 
 
 @app.route("/songs/<name>")
