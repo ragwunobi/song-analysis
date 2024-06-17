@@ -58,7 +58,7 @@ def get_featured_artists(
     artist_count(dict): Dictionary mapping collaborator names to the number of songs they have with the input artist
     """
     # Dictionary to store collaboration frequency
-    artist_count = {}
+    collaborator_freq = {}
     # Get song data for input artist
     song_data = get_songs(
         name, start_page, per_page, page_limit, page_increment, features
@@ -66,27 +66,27 @@ def get_featured_artists(
     # Keep track of current song index
     song_index = 0
 
-    while len(artist_count) <= features_limit:
+    while len(collaborator_freq) <= features_limit:
         primary_artists = featured_artists = []
         if song_data:
             primary_artists = song_data[song_index][2]
             featured_artists = song_data[song_index][1]
         # Add primary artist collaborators to dictionary
-        for artist in primary_artists:
-            artist = artist.strip()
-            if artist not in artist_count:
-                artist_count[artist] = 1
+        for primary in primary_artists:
+            primary = primary.strip()
+            if primary not in collaborator_freq:
+                collaborator_freq[primary] = 1
             else:
-                artist_count[artist] += 1
+                collaborator_freq[primary] += 1
         # Add featured artist collaborators to dictionary
         for feature in featured_artists:
             feature = feature.strip()
-            if feature not in artist_count:
-                artist_count[feature] = 1
+            if feature not in collaborator_freq:
+                collaborator_freq[feature] = 1
             else:
-                artist_count[feature] += 1
+                collaborator_freq[feature] += 1
         song_index += 1
-    return artist_count
+    return collaborator_freq
 
 
 if __name__ == "__main__":
