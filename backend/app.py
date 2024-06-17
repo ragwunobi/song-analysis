@@ -3,15 +3,14 @@ from bs4 import BeautifulSoup
 import requests
 import json
 import re
-
-with open("config.json") as file:
-    config = json.load(file)
+import os
+from dotenv import load_dotenv
 
 # API Keys
-client_id = config["client_id"]
-client_secret = config["client_secret"]
-client_access = config["client_access"]
-bearer = config["bearer_token"]
+client_id = os.getenv("client_id")
+client_secret = os.getenv("client_secret")
+client_access = os.getenv("client_access")
+bearer = os.getenv("bearer_token")
 headers = {"Authorization": f"Bearer {bearer}"}
 app = Flask(__name__)
 
