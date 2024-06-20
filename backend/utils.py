@@ -1,40 +1,46 @@
 import requests
-from config import headers, unicode_dict
+from backend.config import headers, unicode_dict
 from bs4 import BeautifulSoup
 import re
 
 
-def search(keyword, params={}):
-    """Search Genius API for a keyword (e.x. artist name)
+def search(keyword, search_params={}):
+    """Search the Genius API for a keyword (e.x. artist name)
     Parameters:
     keyword(str): The input search string
-    params(dict): Optional parameters dictionary (e.x. page number, results per page)
+    search_params(dict): Optional parameters dictionary (e.x. page number, results per page)
     Returns:
-    Response object or raises an exception
+    A response object or raises a request exception.
     """
     try:
         url = f"http://api.genius.com/search?q={keyword}"
-        response = requests.get(url, headers=headers, params=params)
+        response = requests.get(url, headers=headers, params=search_params)
         return response
     except requests.exceptions.Timeout:
-        raise Exception("Timeout error. Try again.")
+        raise Exception("Timeout error. Please try your request again.")
     except requests.exceptions.TooManyRedirects:
-        raise Exception("Keyword not found. Bad URL.")
+        raise Exception("Too many redirects. Please review the path provided.")
     except requests.exceptions.RequestException as error:
-        raise SystemExit(error)
+        raise SystemExit(
+            f"Request Exception: {error}. Please try again with a different keyword."
+        )
 
 
-def split_artists(name, delimiters=r",|&"):
-    """Split a delimited string of artists names into an array
+def split_artist_names(artist_name, delimiters=r",|&"):
+    """Split a delimited string of artists names into an array.
     Parameters:
-    name(string): An input string of artist name(s)
-    delimiter(str): Regex string of delimiters to split on
+    artist_name(string): An input string of artist name(s).
+    delimiter(str): Regex string of delimiters to split on.
     Returns:
-    artists(list): A list of individual artist names parsed from input string
+    artists(list): A list of individual artist names parsed from input string.
     """
-    # Split name into list of individual artist names
-    artists = re.split(delimiters, name)
-    return artists
+    if len(artist_name) == 0 or artist_name.isspace():
+        return []
+    # Split a string of artist names into a list
+    individual_artists = re.split(r"\s*" + delimiters + r"\s*", artist_name.strip())
+    # Clean empty or whitespace elements from the list
+    cleaned_artist_names = [name.strip() for name in individual_artists if name.strip()]
+    return cleaned_artist_names
 
 
 def parse_song(response, song_data=[], features=True):
@@ -81,7 +87,7 @@ def get_artist_list(artists_data):
     for metadata in artists_data:
         multiple_artist_names = metadata["name"]
         # Clean name by removing unicode and splitting strings of multiple artists (e.x. "Calvin Harris & Lana Del Rey")
-        cleaned_artist_names = split_artists(
+        cleaned_artist_names = split_artist_names(
             remove_unicode(multiple_artist_names, unicode_dict)
         )
         for individual_name in cleaned_artist_names:
