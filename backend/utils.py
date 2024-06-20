@@ -28,14 +28,14 @@ def split_artists(name, delimiters=r",|&"):
     """Split a delimited string of artists names into an array
     Parameters:
     name(string): An input string of artist name(s)
-    delimiter(str): Regex string of delimiters to split on 
+    delimiter(str): Regex string of delimiters to split on
     Returns:
     artists(list): A list of individual artist names parsed from input string
     """
     # Split name into list of individual artist names
     artists = re.split(delimiters, name)
     return artists
-    
+
 
 def parse_song(response, song_data=[], features=True):
     """Get title, path, and lyrics for each song in a response object
@@ -57,28 +57,36 @@ def parse_song(response, song_data=[], features=True):
         # Get song's path
         if result["path"]:
             path = result["path"]
-        # Get list of primary_artists
         primary_artists = []
-        for metadata in result["primary_artists"]:
-            name = metadata["name"]
-            # Primary artist is sometimes  a string of multiple artists (e.x. Calvin Harris & Lana Del Rey)
-            if "&" in name or "," in name:
-                multiple_artists = split_artists(name)
-                if multiple_artists:
-                    for artist in multiple_artists:
-                        #  Replace unicode expressions from artist names
-                        primary_artists.append(remove_unicode(artist, unicode_dict))
-            else:
-                primary_artists.append(name)
+        # Get list of primary_artists
+        if result["primary_artists"]:
+            primary_artists = get_artist_list(result["primary_artists"])
+        featured_artists = []
         # Get list of featured artists
-        if features:
-            featured_artists = []
-            for artist in result["featured_artists"]:
-                #  Replace unicode expressions from artist names
-                featured_artists.append(remove_unicode(artist["name"], unicode_dict))
+        if features and result["featured_artists"]:
+            featured_artists = get_artist_list(result["featured_artists"])
         # Get song lyrics using song path
         lyrics = song_lyrics(path)
         song_data.append([title, featured_artists, primary_artists, path, lyrics])
+
+
+def get_artist_list(artists_data):
+    """Convert primary or featured artists JSON data to list of cleaned artists names.
+    Parameters:
+    artist_data(dict): Primary or featured artist JSON data (e.x. result["featured_artists"])
+    Returns:
+    aritst_names_list(list): A list of cleaned artist names
+    """
+    artists_names_list = []
+    for metadata in artists_data:
+        multiple_artist_names = metadata["name"]
+        # Clean name by removing unicode and splitting strings of multiple artists (e.x. "Calvin Harris & Lana Del Rey")
+        cleaned_artist_names = split_artists(
+            remove_unicode(multiple_artist_names, unicode_dict)
+        )
+        for individual_name in cleaned_artist_names:
+            artists_names_list.append(individual_name)
+    return artists_names_list
 
 
 def song_lyrics(path):
@@ -176,7 +184,7 @@ def remove_unicode(content, unicode_dict={}):
     Returns:
     content(str): Input string with dictionary's unicode keys replaced with plaintext values
     """
-    # Replace each unicode_dict key in content with value
+    # Replace each unicode_dict key in input string with value
     for key in unicode_dict:
         content = content.replace(key, unicode_dict[key])
     return content

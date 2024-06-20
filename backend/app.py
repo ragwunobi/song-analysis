@@ -39,11 +39,11 @@ def get_songs(
 def get_featured_artists(
     name,
     start_page=1,
-    per_page=5,
-    page_limit=10,
+    per_page=10,
+    page_limit=3,
     page_increment=1,
     features=True,
-    features_limit=10,
+    features_limit=5,
 ):
     """Get a dictionary that maps collaborator names to the names and number of songs they have with input artist
     Parameters:
@@ -68,9 +68,16 @@ def get_featured_artists(
     while len(collaborator_freq) <= features_limit:
         primary_artists = featured_artists = []
         if song_data:
-            title = song_data[song_index][0]
-            primary_artists = song_data[song_index][2]
-            featured_artists = song_data[song_index][1]
+            try:
+                title = song_data[song_index][0]
+                primary_artists = song_data[song_index][2]
+                featured_artists = song_data[song_index][1]
+            except IndexError:
+                raise Exception("Index error. Song data could not be found.")
+            except KeyError:
+                raise Exception("Key Error. Song data could not be found.")
+            except Exception as error:
+                raise Exception("Apologies, song data could not be found.")
         # Add primary artist collaborators to dictionary
         generate_collaborator_freq(name, title, primary_artists, collaborator_freq)
         # Add featured artist collaborators to dictionary
@@ -87,17 +94,17 @@ def generate_collaborator_freq(name, title, artists, collaborator_freq):
     artist(list): List of artists that collaborated with input name artist
     collaborator_freq: Dictionary of frequency counts of artist's collaborators
     """
-    # Add collaborators to dictionary
-    for collaborator in artists:
-        collaborator = collaborator.strip()
-        # Do not include input artist as a collaborator
-        if name.lower().strip() == collaborator.lower():
-            continue
-        if collaborator not in collaborator_freq:
-            collaborator_freq[collaborator] = [1, [title]]
-        else:
-            collaborator_freq[collaborator][0] += 1
-            collaborator_freq[collaborator][1].append(title)
+    if artists:
+        for collaborator in artists:
+            # Do not include input artist as a collaborator
+            if name == collaborator:
+                continue
+            # Add collaborator, frequency of collaboration to dictionary
+            if collaborator not in collaborator_freq:
+                collaborator_freq[collaborator] = [1, [title]]
+            else:
+                collaborator_freq[collaborator][0] += 1
+                collaborator_freq[collaborator][1].append(title)
 
 
 if __name__ == "__main__":
