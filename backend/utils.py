@@ -7,10 +7,10 @@ import re
 def search(keyword, search_params={}):
     """Search the Genius API for a keyword (e.x. artist name)
     Parameters:
-    keyword(str): The input search string
-    search_params(dict): Optional parameters dictionary (e.x. page number, results per page)
+    keyword(str): The input search string. 
+    search_params(dict): Optional parameters dictionary (e.x. page number, results per page) 
     Returns:
-    A response object or raises a request exception.
+    A response object or raises a request exception
     """
     try:
         url = f"http://api.genius.com/search?q={keyword}"
@@ -27,12 +27,12 @@ def search(keyword, search_params={}):
 
 
 def split_artist_names(artist_name, delimiters=r",|&"):
-    """Split a delimited string of artists names into an array.
+    """Split a delimited string of artists names into an array
     Parameters:
-    artist_name(string): An input string of artist name(s).
-    delimiter(str): Regex string of delimiters to split on.
+    artist_name(string): An input string of artist name(s)
+    delimiter(str): Regex string of delimiters to split on
     Returns:
-    artists(list): A list of individual artist names parsed from input string.
+    artists(list): A list of individual artist names parsed from input string
     """
     if len(artist_name) == 0 or artist_name.isspace():
         return []
@@ -185,12 +185,14 @@ def insert_spaces(content, regex=[]):
 def remove_unicode(content, unicode_dict={}):
     """Replace unicode expressions from a string with plaintext characters
     Parameters:
-    content(str): Input string to remove unicode expressions from
+    content(str): An input string to remove unicode expressions from
     unicode(dict): Optional dictionary of (target unicode string : replacement plaintext string) pairs
     Returns:
-    content(str): Input string with dictionary's unicode keys replaced with plaintext values
+    content(str): The cleaned input string with dictionary's unicode keys replaced with plaintext values
     """
-    # Replace each unicode_dict key in input string with value
+    # Replace each unicode_dict key with value 
+    if len(content) == 0 or content.isspace(): 
+        return content.strip() 
     for key in unicode_dict:
         content = content.replace(key, unicode_dict[key])
-    return content
+    return content 
