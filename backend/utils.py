@@ -16,13 +16,13 @@ def search(keyword, search_params={}):
         url = f"http://api.genius.com/search?q={keyword}"
         response = requests.get(url, headers=headers, params=search_params)
         return response
-    except requests.exceptions.Timeout:
-        raise Exception("Timeout error. Please try your request again.")
-    except requests.exceptions.TooManyRedirects:
-        raise Exception("Too many redirects. Please review the path provided.")
+    except requests.exceptions.Timeout as timeout_error:
+        raise Exception(f"Timeout error: {timeout_error}. Please try your request again.")
+    except requests.exceptions.TooManyRedirects as redirects_error:
+        raise Exception(f"Too many redirects: {redirects_error}. Please review the path provided.")
     except requests.exceptions.RequestException as error:
         raise SystemExit(
-            f"Request Exception: {error}. Please try again with a different keyword."
+            f"Request Exception: {error}. Please review your keyword and try again."
         )
 
 
@@ -109,12 +109,12 @@ def song_lyrics(path):
         # Clean lyrics and return
         lyrics = clean_lyrics(response)
         return lyrics
-    except requests.exceptions.Timeout:
-        raise Exception("Timeout error. Try again.")
-    except requests.exceptions.TooManyRedirects:
-        raise Exception("Path not found. Bad URL.")
+    except requests.exceptions.Timeout as timeout_error:
+        raise Exception(f"Timeout error: {timeout_error}. Please review your request.")
+    except requests.exceptions.TooManyRedirects as redirects_error:
+        raise Exception(f"Too many redirects: {redirects_error}. Please review the path provided.")
     except requests.exceptions.RequestException as error:
-        raise SystemExit(error)
+        raise SystemExit(f"Exception: {error}. Please review your request.")
 
 
 def clean_lyrics(response, start_pattern=r"Lyrics[", end_pattern=r"Embed"):
@@ -146,7 +146,7 @@ def clean_lyrics(response, start_pattern=r"Lyrics[", end_pattern=r"Embed"):
     lyrics = remove_unicode(lyrics, unicode_dict)
     # Use Regex matching to insert spaces
     lyrics = insert_spaces(
-        lyrics, regex=[r"([a-z])([A-Z])", r"(])([A-Z])", r"(\))([A-Z])"]
+        lyrics,regex=[r"([a-z.,!?])([A-Z])", r"([\).,!?])([A-Z])",  r"([].,!?])([A-Z])"]
     )
     return lyrics
 
@@ -169,17 +169,30 @@ def remove_end_digits(content):
 
 
 def insert_spaces(content, regex=[]):
-    """Insert space betweeen two regex groups
+    """Insert a space between each matching pair of regex groups
     Parameters:
     content(str): Input string to insert spaces into
-    regex(list):  Optional list of regex patterns (each patttern has two groups)
+    regex(list):  Optional list of regex patterns (each pattern has 2 groups)
     Returns:
-    content(str): Input string with space inserted between each regex pattern
+    cleaned_content(str): Input string with space inserted between each regex pattern
     """
+    if len(content) == 0 or content.isspace(): 
+        return content.strip() 
+    cleaned_content = content 
     for pattern in regex:
         # Match regex pattern and insert a space between groups
-        content = re.sub(pattern, r"\1 \2", content)
-    return content
+        try: 
+            num_groups = re.compile(pattern).groups
+            if num_groups > 2: 
+                raise ValueError(f"Regex error. Please review your regular expression has exactly two groups.")
+            cleaned_content = re.sub(pattern, r"\1 \2", cleaned_content)
+        except re.error as re_error: 
+            raise ValueError(f"Regex error: {re_error}. Please confirm your regular expressions.")
+        except IndexError as index_error: 
+            raise ValueError(f"Index error: {index_error}. Please confirm your regular expressions has exactly two groups.")
+        except Exception as error: 
+            raise ValueError(f"Exception: {error}. Please review your regular expressions.")
+    return cleaned_content
 
 
 def remove_unicode(content, unicode_dict={}):
