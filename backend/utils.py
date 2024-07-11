@@ -7,8 +7,8 @@ import re
 def search(keyword, search_params={}):
     """Search the Genius API for a keyword (e.x. artist name)
     Parameters:
-    keyword(str): The input search string. 
-    search_params(dict): Optional parameters dictionary (e.x. page number, results per page) 
+    keyword(str): The input search string.
+    search_params(dict): Optional parameters dictionary (e.x. page number, results per page)
     Returns:
     A response object or raises a request exception
     """
@@ -17,9 +17,13 @@ def search(keyword, search_params={}):
         response = requests.get(url, headers=headers, params=search_params)
         return response
     except requests.exceptions.Timeout as timeout_error:
-        raise Exception(f"Timeout error: {timeout_error}. Please try your request again.")
+        raise Exception(
+            f"Timeout error: {timeout_error}. Please try your request again."
+        )
     except requests.exceptions.TooManyRedirects as redirects_error:
-        raise Exception(f"Too many redirects: {redirects_error}. Please review the path provided.")
+        raise Exception(
+            f"Too many redirects: {redirects_error}. Please review the path provided."
+        )
     except requests.exceptions.RequestException as error:
         raise SystemExit(
             f"Request Exception: {error}. Please review your keyword and try again."
@@ -112,7 +116,9 @@ def song_lyrics(path):
     except requests.exceptions.Timeout as timeout_error:
         raise Exception(f"Timeout error: {timeout_error}. Please review your request.")
     except requests.exceptions.TooManyRedirects as redirects_error:
-        raise Exception(f"Too many redirects: {redirects_error}. Please review the path provided.")
+        raise Exception(
+            f"Too many redirects: {redirects_error}. Please review the path provided."
+        )
     except requests.exceptions.RequestException as error:
         raise SystemExit(f"Exception: {error}. Please review your request.")
 
@@ -146,25 +152,24 @@ def clean_lyrics(response, start_pattern=r"Lyrics[", end_pattern=r"Embed"):
     lyrics = remove_unicode(lyrics, unicode_dict)
     # Use Regex matching to insert spaces
     lyrics = insert_spaces(
-        lyrics,regex=[r"([a-z.,!?])([A-Z])", r"([\).,!?])([A-Z])",  r"([].,!?])([A-Z])"]
+        lyrics, regex=[r"([a-z.,!?])([A-Z])", r"([\).,!?])([A-Z])", r"([].,!?])([A-Z])"]
     )
     return lyrics
 
 
 def remove_end_digits(content):
-    """Cleans digits at the end of a string
+    """Cleans digits at the end of a string.
     Parameters:
-    content(str): Input string
+    content(str): An input string of lyrics.
     Returns:
-    content(str): Input string with digits at the end removed
+    content(str): An input string with digits at the end removed.
     """
-    # Last index of input string
+    if len(content) == 0:
+        return ""
     end = len(content) - 1
-    # Remove digits at the end of the string
-    while content[end].isdigit():
+    while end >= 0 and content[end].isdigit():
         content = content[0:end]
-        # Recalculate last index
-        end = len(content) - 1
+        end -= 1
     return content
 
 
@@ -176,22 +181,30 @@ def insert_spaces(content, regex=[]):
     Returns:
     cleaned_content(str): Input string with space inserted between each regex pattern
     """
-    if len(content) == 0 or content.isspace(): 
-        return content.strip() 
-    cleaned_content = content 
+    if len(content) == 0 or content.isspace():
+        return content.strip()
+    cleaned_content = content
     for pattern in regex:
         # Match regex pattern and insert a space between groups
-        try: 
+        try:
             num_groups = re.compile(pattern).groups
-            if num_groups > 2: 
-                raise ValueError(f"Regex error. Please review your regular expression has exactly two groups.")
+            if num_groups > 2:
+                raise ValueError(
+                    f"Regex error. Please review your regular expression has exactly two groups."
+                )
             cleaned_content = re.sub(pattern, r"\1 \2", cleaned_content)
-        except re.error as re_error: 
-            raise ValueError(f"Regex error: {re_error}. Please confirm your regular expressions.")
-        except IndexError as index_error: 
-            raise ValueError(f"Index error: {index_error}. Please confirm your regular expressions has exactly two groups.")
-        except Exception as error: 
-            raise ValueError(f"Exception: {error}. Please review your regular expressions.")
+        except re.error as re_error:
+            raise ValueError(
+                f"Regex error: {re_error}. Please confirm your regular expressions."
+            )
+        except IndexError as index_error:
+            raise ValueError(
+                f"Index error: {index_error}. Please confirm your regular expressions has exactly two groups."
+            )
+        except Exception as error:
+            raise ValueError(
+                f"Exception: {error}. Please review your regular expressions."
+            )
     return cleaned_content
 
 
@@ -203,9 +216,9 @@ def remove_unicode(content, unicode_dict={}):
     Returns:
     content(str): The cleaned input string with dictionary's unicode keys replaced with plaintext values
     """
-    # Replace each unicode_dict key with value 
-    if len(content) == 0 or content.isspace(): 
-        return content.strip() 
+    # Replace each unicode_dict key with value
+    if len(content) == 0 or content.isspace():
+        return content.strip()
     for key in unicode_dict:
         content = content.replace(key, unicode_dict[key])
-    return content 
+    return content
