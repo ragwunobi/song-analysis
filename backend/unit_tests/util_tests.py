@@ -1,5 +1,5 @@
 import unittest
-from unittest import mock
+from unittest.mock import Mock
 import requests
 from backend.config import unicode_dict
 from backend.utils import (
@@ -7,11 +7,52 @@ from backend.utils import (
     remove_unicode,
     insert_spaces,
     remove_end_digits,
+    clean_lyrics,
 )
 from unittest.mock import patch, MagicMock
 
-
 class TestUtilsFunctions(unittest.TestCase):
+    def test_clean_lyrics_no_start(self):
+        """Test input where start pattern does not match"""
+        response = Mock()
+        response.text = "A town you're just a guest inSo you work your life away just to payFor a time-share down in DestinEmbed930"
+        cleaned_lyrics = clean_lyrics(response)
+        expected_result = "A town you're just a guest in So you work your life away just to pay For a time-share down in Destin"
+        self.assertEqual(cleaned_lyrics, expected_result)
+    
+    def test_clean_lyrics_no_end(self): 
+        """Test input where end pattern does not match"""
+        response = Mock() 
+        response.text = "Lyrics[I'm working late cuz I'm a singer2332"
+        cleaned_lyrics = clean_lyrics(response) 
+        expected_result = "I'm working late cuz I'm a singer" 
+        self.assertEqual(cleaned_lyrics, expected_result) 
+
+
+    def test_clean_lyrics_start_and_end(self): 
+        """Test input where start and end pattern matches"""
+        response = Mock() 
+        response.text = "Lyrics[Alien superstarEmbed" 
+        cleaned_lyrics = clean_lyrics(response) 
+        expected_result = "Alien superstar" 
+        self.assertEqual(cleaned_lyrics, expected_result)
+
+    def test_clean_lyrics_no_pattern(self): 
+        """Test input where neither start nor end pattern matches"""
+        response = Mock() 
+        response.text = "I'm working late cuz I'm a singer"
+        cleaned_lyrics = clean_lyrics(response) 
+        expected_result = "I'm working late cuz I'm a singer" 
+        self.assertEqual(cleaned_lyrics, expected_result) 
+
+    def test_clean_lyrics_unicode(self): 
+        """Test input with unicode expressions"""
+        response = Mock() 
+        response.text ="\u0435 \u0435 \u2019\u200b" 
+        cleaned_lyrics = clean_lyrics(response) 
+        expected_result = "e e ' " 
+        self.assertEqual(cleaned_lyrics, expected_result)
+
     def test_remove_end_digits_all_digits(self):
         """Test input of all digits"""
         lyrics = "12345"

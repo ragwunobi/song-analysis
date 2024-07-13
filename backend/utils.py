@@ -124,36 +124,50 @@ def song_lyrics(path):
 
 
 def clean_lyrics(response, start_pattern=r"Lyrics[", end_pattern=r"Embed"):
-    """Parse and clean lyrics from Response object
-    Remove digits at the end of lyrics, replace unicode expressions with plaintext, insert spaces
+    """Clean and format the lyrics from a Response object.
+    Remove digits at the end of lyrics, replace unicode expressions with plaintext, and insert spaces between lines.
     Parameters:
-    response(Requests.response): Response object from GET Request
-    start_pattern(str): Optional string pattern to match start of lyrics
-    end_pattern(str): Optional string pattern to match end of lyrics
+    response(Requests.response): Response object from GET Request.
+    start_pattern(str): Optional string pattern to match start of lyrics.
+    end_pattern(str): Optional string pattern to match end of lyrics.
     Returns:
-    lyrics(str): String of cleaned lyrics
+    lyrics(str): String of cleaned lyrics.
     """
-    soup = BeautifulSoup(response.text, "html.parser")
-    # Get plain text from response
-    lyrics = soup.get_text()
-    # Find index where lyrics start
-    start = lyrics.find(start_pattern)
-    if start == -1:
-        start = 0
-    # Find index where lyrics end
-    end = lyrics.find(end_pattern)
-    if end == -1:
-        end = len(lyrics) - 1
-    # Call helper functions to clean lyrics
-    lyrics = lyrics[start:end]
-    # Remove digits at the end of lyrics
-    lyrics = remove_end_digits(lyrics)
-    # Replace unicode expressions with plaintext
-    lyrics = remove_unicode(lyrics, unicode_dict)
-    # Use Regex matching to insert spaces
-    lyrics = insert_spaces(
-        lyrics, regex=[r"([a-z.,!?])([A-Z])", r"([\).,!?])([A-Z])", r"([].,!?])([A-Z])"]
-    )
+    try: 
+        soup = BeautifulSoup(response.text, "html.parser")
+    except Exception as error: 
+        raise ValueError(f"Exception: {error}. Please review and confirm your response object is valid.") 
+    try: 
+        lyrics = soup.get_text()
+        if len(lyrics) == 0:
+            return ""
+
+        # Find index where lyrics start
+        start = lyrics.find(start_pattern)
+        if start == -1:
+            start = 0
+        else: 
+            start += len(start_pattern)  
+        # Find index where lyrics end
+        end = lyrics.find(end_pattern)
+        if end == -1:
+            end = len(lyrics) 
+        # Get lyrics section of the response (exclude other page information)
+        lyrics = lyrics[start:end]
+
+        # Clean lyrics
+        # Remove digits at the end of lyrics
+        lyrics = remove_end_digits(lyrics)
+        # Replace unicode expressions with plaintext
+        lyrics = remove_unicode(lyrics, unicode_dict)
+
+        # Format lyrics
+        # Use regex matching to insert spaces between lines
+        lyrics = insert_spaces(
+            lyrics, regex=[r"([a-z.,!?])([A-Z])", r"([\).,!?])([A-Z])", r"([].,!?])([A-Z])"]
+        )
+    except Exception as error: 
+        raise ValueError(f"Exception: {error}. Could not clean and format lyrics, please review your response.")
     return lyrics
 
 
