@@ -1,8 +1,15 @@
+import sys
+import os
+
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
+import json
 import unittest
 from unittest.mock import Mock
 import requests
+from backend.config import headers, unicode_dict
 from backend.config import unicode_dict
 from backend.utils import (
+    search,
     split_artist_names,
     remove_unicode,
     insert_spaces,
@@ -11,7 +18,68 @@ from backend.utils import (
 )
 from unittest.mock import patch, MagicMock
 
+
 class TestUtilsFunctions(unittest.TestCase):
+    def test_search_empty_keyword(self):
+        with self.assertRaises(ValueError):
+            search("")
+
+    @patch("requests.get")
+    def test_search_successful_request(self, mock_get):
+        self.keyword = "Kacey Musgraves"
+        self.path = os.path.join(os.path.dirname(__file__), "sample_response.json")
+        with open(self.path) as sample_response:
+            mock_response = json.load(sample_response)
+        mock_get.return_value.json.return_value = mock_response["response"]
+        mock_get.return_value.status_code = mock_response["meta"]["status"]
+        response = search(self.keyword)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json(), mock_get.return_value.json.return_value)
+
+    @patch("requests.get")
+    def test_search_404_http_error(self, mock_get):
+        self.keyword = "Kendrick"
+        mock_get.side_effect = requests.exceptions.HTTPError("404 Not Found")
+        with self.assertRaises(Exception) as http_error:
+            search(self.keyword)
+        self.assertEqual(
+            "HTTP Error: 404 Not Found. Please review the path provided.",
+            str(http_error.exception),
+        )
+
+    @patch("requests.get")
+    def test_search_timeout_error(self, mock_get):
+        self.keyword = "SZA"
+        mock_get.side_effect = requests.exceptions.Timeout("Request timeout")
+        with self.assertRaises(Exception) as timeout_error:
+            search(self.keyword)
+        self.assertEqual(
+            "Timeout Error: Request timeout. Please try the request again.",
+            str(timeout_error.exception),
+        )
+
+    @patch("requests.get")
+    def test_search_redirects_error(self, mock_get):
+        self.keyword = "Black Eyed Peas"
+        mock_get.side_effect = requests.exceptions.TooManyRedirects("Redirects error")
+        with self.assertRaises(Exception) as redirects_error:
+            search(self.keyword)
+        self.assertEqual(
+            "Too Many Redirects: Redirects error. Please review the path provided.",
+            str(redirects_error.exception),
+        )
+
+    @patch("requests.get")
+    def test_search_requests_exception(self, mock_get):
+        self.keyword = "Jimmy Hendrix"
+        mock_get.side_effect = requests.exceptions.RequestException("Request error")
+        with self.assertRaises(Exception) as request_exception:
+            search(self.keyword)
+        self.assertEqual(
+            "Request Exception: Request error. Please review the keyword provided.",
+            str(request_exception.exception),
+        )
+
     def test_clean_lyrics_no_start(self):
         """Test input where start pattern does not match"""
         response = Mock()
@@ -19,38 +87,37 @@ class TestUtilsFunctions(unittest.TestCase):
         cleaned_lyrics = clean_lyrics(response)
         expected_result = "A town you're just a guest in So you work your life away just to pay For a time-share down in Destin"
         self.assertEqual(cleaned_lyrics, expected_result)
-    
-    def test_clean_lyrics_no_end(self): 
+
+    def test_clean_lyrics_no_end(self):
         """Test input where end pattern does not match"""
-        response = Mock() 
+        response = Mock()
         response.text = "Lyrics[I'm working late cuz I'm a singer2332"
-        cleaned_lyrics = clean_lyrics(response) 
-        expected_result = "I'm working late cuz I'm a singer" 
-        self.assertEqual(cleaned_lyrics, expected_result) 
-
-
-    def test_clean_lyrics_start_and_end(self): 
-        """Test input where start and end pattern matches"""
-        response = Mock() 
-        response.text = "Lyrics[Alien superstarEmbed" 
-        cleaned_lyrics = clean_lyrics(response) 
-        expected_result = "Alien superstar" 
+        cleaned_lyrics = clean_lyrics(response)
+        expected_result = "I'm working late cuz I'm a singer"
         self.assertEqual(cleaned_lyrics, expected_result)
 
-    def test_clean_lyrics_no_pattern(self): 
-        """Test input where neither start nor end pattern matches"""
-        response = Mock() 
-        response.text = "I'm working late cuz I'm a singer"
-        cleaned_lyrics = clean_lyrics(response) 
-        expected_result = "I'm working late cuz I'm a singer" 
-        self.assertEqual(cleaned_lyrics, expected_result) 
+    def test_clean_lyrics_start_and_end(self):
+        """Test input where start and end pattern matches"""
+        response = Mock()
+        response.text = "Lyrics[Alien superstarEmbed"
+        cleaned_lyrics = clean_lyrics(response)
+        expected_result = "Alien superstar"
+        self.assertEqual(cleaned_lyrics, expected_result)
 
-    def test_clean_lyrics_unicode(self): 
+    def test_clean_lyrics_no_pattern(self):
+        """Test input where neither start nor end pattern matches"""
+        response = Mock()
+        response.text = "I'm working late cuz I'm a singer"
+        cleaned_lyrics = clean_lyrics(response)
+        expected_result = "I'm working late cuz I'm a singer"
+        self.assertEqual(cleaned_lyrics, expected_result)
+
+    def test_clean_lyrics_unicode(self):
         """Test input with unicode expressions"""
-        response = Mock() 
-        response.text ="\u0435 \u0435 \u2019\u200b" 
-        cleaned_lyrics = clean_lyrics(response) 
-        expected_result = "e e ' " 
+        response = Mock()
+        response.text = "\u0435 \u0435 \u2019\u200b"
+        cleaned_lyrics = clean_lyrics(response)
+        expected_result = "e e ' "
         self.assertEqual(cleaned_lyrics, expected_result)
 
     def test_remove_end_digits_all_digits(self):

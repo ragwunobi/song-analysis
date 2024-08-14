@@ -1,5 +1,5 @@
 import requests
-from backend.config import headers, unicode_dict
+from config import headers, unicode_dict
 from bs4 import BeautifulSoup
 import re
 
@@ -10,23 +10,29 @@ def search(keyword, search_params={}):
     keyword(str): The input search string.
     search_params(dict): Optional parameters dictionary (e.x. page number, results per page)
     Returns:
-    A response object or raises a request exception
+    A requests response object or raises an exception
     """
+    if not keyword:
+        raise ValueError("Please confirm the keyword is not empty.")
     try:
         url = f"http://api.genius.com/search?q={keyword}"
         response = requests.get(url, headers=headers, params=search_params)
+        # Confirm get request is successful or raise an HTTP Error
+        response.raise_for_status()
         return response
+    except requests.exceptions.HTTPError as http_error:
+        raise Exception(f"HTTP Error: {http_error}. Please review the path provided.")
     except requests.exceptions.Timeout as timeout_error:
         raise Exception(
-            f"Timeout error: {timeout_error}. Please try your request again."
+            f"Timeout Error: {timeout_error}. Please try the request again."
         )
     except requests.exceptions.TooManyRedirects as redirects_error:
         raise Exception(
-            f"Too many redirects: {redirects_error}. Please review the path provided."
+            f"Too Many Redirects: {redirects_error}. Please review the path provided."
         )
     except requests.exceptions.RequestException as error:
-        raise SystemExit(
-            f"Request Exception: {error}. Please review your keyword and try again."
+        raise Exception(
+            f"Request Exception: {error}. Please review the keyword provided."
         )
 
 
@@ -133,11 +139,13 @@ def clean_lyrics(response, start_pattern=r"Lyrics[", end_pattern=r"Embed"):
     Returns:
     lyrics(str): String of cleaned lyrics.
     """
-    try: 
+    try:
         soup = BeautifulSoup(response.text, "html.parser")
-    except Exception as error: 
-        raise ValueError(f"Exception: {error}. Please review and confirm your response object is valid.") 
-    try: 
+    except Exception as error:
+        raise ValueError(
+            f"Exception: {error}. Please review and confirm your response object is valid."
+        )
+    try:
         lyrics = soup.get_text()
         if len(lyrics) == 0:
             return ""
@@ -146,12 +154,12 @@ def clean_lyrics(response, start_pattern=r"Lyrics[", end_pattern=r"Embed"):
         start = lyrics.find(start_pattern)
         if start == -1:
             start = 0
-        else: 
-            start += len(start_pattern)  
+        else:
+            start += len(start_pattern)
         # Find index where lyrics end
         end = lyrics.find(end_pattern)
         if end == -1:
-            end = len(lyrics) 
+            end = len(lyrics)
         # Get lyrics section of the response (exclude other page information)
         lyrics = lyrics[start:end]
 
@@ -164,10 +172,13 @@ def clean_lyrics(response, start_pattern=r"Lyrics[", end_pattern=r"Embed"):
         # Format lyrics
         # Use regex matching to insert spaces between lines
         lyrics = insert_spaces(
-            lyrics, regex=[r"([a-z.,!?])([A-Z])", r"([\).,!?])([A-Z])", r"([].,!?])([A-Z])"]
+            lyrics,
+            regex=[r"([a-z.,!?])([A-Z])", r"([\).,!?])([A-Z])", r"([].,!?])([A-Z])"],
         )
-    except Exception as error: 
-        raise ValueError(f"Exception: {error}. Could not clean and format lyrics, please review your response.")
+    except Exception as error:
+        raise ValueError(
+            f"Exception: {error}. Could not clean and format lyrics, please review your response."
+        )
     return lyrics
 
 
