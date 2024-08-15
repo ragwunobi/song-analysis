@@ -234,16 +234,16 @@ def insert_spaces(content, regex=[]):
 
 
 def remove_unicode(content, unicode_dict={}):
-    """Replace unicode expressions from a string with plaintext characters
+    """Replace unicode expressions with plaintext in an input string
     Parameters:
     content(str): An input string to remove unicode expressions from
     unicode(dict): Optional dictionary of (target unicode string : replacement plaintext string) pairs
     Returns:
     content(str): The cleaned input string with dictionary's unicode keys replaced with plaintext values
     """
-    # Replace each unicode_dict key with value
     if len(content) == 0 or content.isspace():
-        return content.strip()
+        return content
+    # Replace unicode expression (key) with plaintext (value)
     for key in unicode_dict:
         content = content.replace(key, unicode_dict[key])
     return content

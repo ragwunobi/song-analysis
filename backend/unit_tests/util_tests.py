@@ -26,6 +26,7 @@ class TestUtilsFunctions(unittest.TestCase):
 
     @patch("requests.get")
     def test_search_successful_request(self, mock_get):
+        """Test with a valid input artist"""
         self.keyword = "Kacey Musgraves"
         self.path = os.path.join(os.path.dirname(__file__), "sample_response.json")
         with open(self.path) as sample_response:
@@ -38,6 +39,7 @@ class TestUtilsFunctions(unittest.TestCase):
 
     @patch("requests.get")
     def test_search_404_http_error(self, mock_get):
+        """Test input results in 404 HTTP error"""
         self.keyword = "Kendrick"
         mock_get.side_effect = requests.exceptions.HTTPError("404 Not Found")
         with self.assertRaises(Exception) as http_error:
@@ -49,6 +51,7 @@ class TestUtilsFunctions(unittest.TestCase):
 
     @patch("requests.get")
     def test_search_timeout_error(self, mock_get):
+        """Test input results in Timeout error"""
         self.keyword = "SZA"
         mock_get.side_effect = requests.exceptions.Timeout("Request timeout")
         with self.assertRaises(Exception) as timeout_error:
@@ -60,6 +63,7 @@ class TestUtilsFunctions(unittest.TestCase):
 
     @patch("requests.get")
     def test_search_redirects_error(self, mock_get):
+        """Test input results in Too Many Redirects error"""
         self.keyword = "Black Eyed Peas"
         mock_get.side_effect = requests.exceptions.TooManyRedirects("Redirects error")
         with self.assertRaises(Exception) as redirects_error:
@@ -71,6 +75,7 @@ class TestUtilsFunctions(unittest.TestCase):
 
     @patch("requests.get")
     def test_search_requests_exception(self, mock_get):
+        """Test input results in Request Exception"""
         self.keyword = "Jimmy Hendrix"
         mock_get.side_effect = requests.exceptions.RequestException("Request error")
         with self.assertRaises(Exception) as request_exception:
@@ -224,6 +229,20 @@ class TestUtilsFunctions(unittest.TestCase):
         with self.assertRaises(ValueError):
             cleaned_lyrics = insert_spaces(lyrics, regex)
 
+    def test_remove_unicode_empty_string(self):
+        """Test input with an empty string"""
+        artist_name = ""
+        cleaned_artist_name = remove_unicode(artist_name, unicode_dict)
+        expected_result = ""
+        self.assertEqual(cleaned_artist_name, expected_result)
+
+    def test_remove_unicode_single_replacement(self):
+        """Test input with a single unicode expression"""
+        artist_name = "\u0435"
+        cleaned_artist_name = remove_unicode(artist_name, unicode_dict)
+        expected_result = "e"
+        self.assertEqual(cleaned_artist_name, expected_result)
+
     def test_remove_unicode_multiple_replacements(self):
         """Test input with multiple unicode expressions"""
         artist_name = "Fitz\u200band\u00a0the\u00a0Tantrums"
@@ -238,25 +257,18 @@ class TestUtilsFunctions(unittest.TestCase):
         expected_result = "The Maria's"
         self.assertEqual(cleaned_artist_name, expected_result)
 
-    def test_remove_unicode_empty_string(self):
-        """Test input with an empty string"""
-        artist_name = ""
-        cleaned_artist_name = remove_unicode(artist_name, unicode_dict)
-        expected_result = ""
-        self.assertEqual(cleaned_artist_name, expected_result)
-
-    def test_remove_unicode_multiple_whitespace(self):
-        """Test input with multiple whitespaces"""
-        artist_name = "    "
-        cleaned_artist_name = remove_unicode(artist_name, unicode_dict)
-        expected_result = ""
-        self.assertEqual(cleaned_artist_name, expected_result)
-
     def test_remove_unicode_all_unicode_no_spaces(self):
         """Test input with only unicode expressions and no spaces"""
         artist_name = "\u00a0\u2019\u200b\u0435"
         cleaned_artist_name = remove_unicode(artist_name, unicode_dict)
         expected_result = " ' e"
+        self.assertEqual(cleaned_artist_name, expected_result)
+
+    def test_remove_unicode_replace_spaces(self):
+        """Test input with unicode spaces"""
+        artist_name = " \u200b  \u200b"
+        cleaned_artist_name = remove_unicode(artist_name, unicode_dict)
+        expected_result = "   "
         self.assertEqual(cleaned_artist_name, expected_result)
 
     def test_split_artist_names_comma_and_ampersand(self):
