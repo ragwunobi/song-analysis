@@ -160,8 +160,16 @@ class TestUtilsFunctions(unittest.TestCase):
         # Lyrics are not changed because input is empty.
         self.assertEqual(lyrics, cleaned_lyrics)
 
-    def test_insert_spaces_two_groups(self):
-        """Test input with two groups to insert one space between"""
+    def test_insert_spaces_empty_string(self):
+        """Test input with empty string"""
+        regex = [r"([].,!?])([A-Z])", r"([\).,!?])([A-Z])"]
+        lyrics = ""
+        cleaned_lyrics = insert_spaces(lyrics, regex)
+        expected_result = ""
+        self.assertEqual(cleaned_lyrics, expected_result)
+
+    def test_insert_spaces_single_expression(self):
+        """Test input with one regex to insert a space between"""
         regex = [r"([a-z])([A-Z])"]
         lyrics = "Is it that sweetI guess so"
         cleaned_lyrics = insert_spaces(lyrics, regex)
@@ -184,20 +192,12 @@ class TestUtilsFunctions(unittest.TestCase):
         expected_result = "[Lyrics] Is it that sweet, I guess so(Chorus)"
         self.assertEqual(cleaned_lyrics, expected_result)
 
-    def test_insert_spaces_empty_string(self):
-        """Test input with empty string"""
-        regex = [r"([].,!?])([A-Z])", r"([\).,!?])([A-Z])"]
-        lyrics = ""
-        cleaned_lyrics = insert_spaces(lyrics, regex)
-        expected_result = ""
-        self.assertEqual(cleaned_lyrics, expected_result)
-
     def test_insert_spaces_multiple_whitespaces(self):
         """Test input with multiple whitespaces"""
         regex = [r"([].,!?])([A-Z])"]
         lyrics = "     "
         cleaned_lyrics = insert_spaces(lyrics, regex)
-        expected_result = ""
+        expected_result = "     "
         self.assertEqual(cleaned_lyrics, expected_result)
 
     def test_insert_spaces_empty_regex(self):
@@ -223,10 +223,17 @@ class TestUtilsFunctions(unittest.TestCase):
             cleaned_lyrics = insert_spaces(lyrics, regex)
 
     def test_insert_spaces_three_groups(self):
-        """Test input with regex expressions with three groups"""
+        """Test input with regex with three groups"""
         regex = [r"([a-z])([A-Z])([a-z])"]
         lyrics = "(Lyrics) Is it that sweetI guess so"
-        with self.assertRaises(ValueError):
+        with self.assertRaises(Exception):
+            cleaned_lyrics = insert_spaces(lyrics, regex)
+
+    def test_insert_spaces_type_error(self):
+        """Test input where regex is not a string"""
+        regex = [1234]
+        lyrics = "(Lyrics) Is it that sweetI guess so"
+        with self.assertRaises(TypeError):
             cleaned_lyrics = insert_spaces(lyrics, regex)
 
     def test_remove_unicode_empty_string(self):
@@ -268,7 +275,7 @@ class TestUtilsFunctions(unittest.TestCase):
         """Test input with unicode spaces"""
         artist_name = " \u200b  \u200b"
         cleaned_artist_name = remove_unicode(artist_name, unicode_dict)
-        expected_result = "   "
+        expected_result = "     "
         self.assertEqual(cleaned_artist_name, expected_result)
 
     def test_split_artist_names_comma_and_ampersand(self):

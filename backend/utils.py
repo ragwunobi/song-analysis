@@ -199,7 +199,7 @@ def remove_end_digits(content):
 
 
 def insert_spaces(content, regex=[]):
-    """Insert a space between each matching pair of regex groups
+    """Insert a space between the two groups in each matching regex pattern
     Parameters:
     content(str): Input string to insert spaces into
     regex(list):  Optional list of regex patterns (each pattern has 2 groups)
@@ -207,7 +207,7 @@ def insert_spaces(content, regex=[]):
     cleaned_content(str): Input string with space inserted between each regex pattern
     """
     if len(content) == 0 or content.isspace():
-        return content.strip()
+        return content
     cleaned_content = content
     for pattern in regex:
         # Match regex pattern and insert a space between groups
@@ -215,19 +215,19 @@ def insert_spaces(content, regex=[]):
             num_groups = re.compile(pattern).groups
             if num_groups > 2:
                 raise ValueError(
-                    f"Regex error. Please review your regular expression has exactly two groups."
+                    f"Regex error. Please confirm your regular expression has exactly two groups."
                 )
             cleaned_content = re.sub(pattern, r"\1 \2", cleaned_content)
         except re.error as re_error:
             raise ValueError(
-                f"Regex error: {re_error}. Please confirm your regular expressions."
+                f"Regex error: {re_error}. Please review your regular expressions."
             )
-        except IndexError as index_error:
-            raise ValueError(
-                f"Index error: {index_error}. Please confirm your regular expressions has exactly two groups."
+        except TypeError as type_error:
+            raise TypeError(
+                f"Type error: {type_error}. Please review your regular expressions."
             )
         except Exception as error:
-            raise ValueError(
+            raise Exception(
                 f"Exception: {error}. Please review your regular expressions."
             )
     return cleaned_content
