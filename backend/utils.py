@@ -36,20 +36,22 @@ def search(keyword, search_params={}):
         )
 
 
-def split_artist_names(artist_name, delimiters=r",|&"):
-    """Split a delimited string of artists names into an array
+def split_artist_names(artist_names, delimiters=r",|&"):
+    """Split a delimited string of artist names into an array of individual artists
     Parameters:
-    artist_name(string): An input string of artist name(s)
+    artist_names(string): An input string of artist name(s)
     delimiter(str): Regex string of delimiters to split on
     Returns:
-    artists(list): A list of individual artist names parsed from input string
+    cleaned_artist_names(list): A list of individual artist names parsed from input string
     """
-    if len(artist_name) == 0 or artist_name.isspace():
+    if len(artist_names) == 0 or artist_names.isspace():
         return []
     # Split a string of artist names into a list
-    individual_artists = re.split(r"\s*" + delimiters + r"\s*", artist_name.strip())
+    split_artist_names = re.split(
+        r"\s*" + delimiters + r"\s*", artist_names.strip()
+    )
     # Clean empty or whitespace elements from the list
-    cleaned_artist_names = [name.strip() for name in individual_artists if name.strip()]
+    cleaned_artist_names = [name.strip() for name in split_artist_names if name.strip()]
     return cleaned_artist_names
 
 
@@ -237,7 +239,7 @@ def remove_unicode(content, unicode_dict={}):
     """Replace unicode expressions with plaintext in an input string
     Parameters:
     content(str): An input string to remove unicode expressions from
-    unicode(dict): Optional dictionary of (target unicode string : replacement plaintext string) pairs
+    unicode_dict(dict): Optional dictionary of (target unicode string : replacement plaintext string) pairs
     Returns:
     content(str): The cleaned input string with dictionary's unicode keys replaced with plaintext values
     """
