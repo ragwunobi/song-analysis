@@ -14,6 +14,7 @@ from backend.utils import (
     remove_unicode,
     insert_spaces,
     remove_end_digits,
+    parse_song, 
     clean_lyrics,
 )
 from unittest.mock import patch, MagicMock

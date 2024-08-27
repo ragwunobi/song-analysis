@@ -55,38 +55,44 @@ def split_artist_names(artist_names, delimiters=r",|&"):
     return cleaned_artist_names
 
 
-def parse_song(response, song_data=[], features=True):
-    """Get title, path, and lyrics for each song in a response object
+def parse_song(response, song_data=[], features_flag=True):
+    """Get a list of title, path, lyrics, primary artists, and featured artists (optional) for each song in a response object
     Parameters:
     response(Requests.response): JSON response from Genius API GET request
-    features(bool): Input boolean flag to get a song's featured_artists
+    features(bool): Boolean flag (T/F) to get a song's featured artists 
     Returns:
-    song_data(list(list)): Title, primary artists, featured artists (opt), path, and lyrics for each song found
-    """
-    response = response.json()["response"]
-    # Iterate through each song in response
-    for song in response["hits"]:
-        result = song["result"]
-        title = path = ""
-        # Get song title from response
-        if result["full_title"]:
-            # Replace unicode expressions from the title
-            title = remove_unicode(result["full_title"], unicode_dict)
-        # Get song's path
-        if result["path"]:
-            path = result["path"]
-        primary_artists = []
-        # Get list of primary_artists
-        if result["primary_artists"]:
-            primary_artists = get_artist_list(result["primary_artists"])
-        featured_artists = []
-        # Get list of featured artists
-        if features and result["featured_artists"]:
-            featured_artists = get_artist_list(result["featured_artists"])
-        # Get song lyrics using song path
-        lyrics = song_lyrics(path)
-        song_data.append([title, featured_artists, primary_artists, path, lyrics])
-
+    song_data(list(list)): A list of lists (title, path, lyrics, primary artists, and featured artists (optional)) for each song
+    """ 
+    try:
+        if "response" in response.json():
+            response = response.json()["response"]
+            # Iterate through each song in response
+            for song in response["hits"]:
+                result = song["result"]
+                title = path = ""
+                primary_artists, featured_artists = [] 
+                # Get song title 
+                if result["full_title"]:
+                    # Replace unicode expressions from the title
+                    title = remove_unicode(result["full_title"], unicode_dict)
+                # Get song path 
+                if result["path"]:
+                    path = result["path"]
+                # Get list of primary artists 
+                if result["primary_artists"]:
+                    primary_artists = get_artist_list(result["primary_artists"])
+                # Get list of featured artists
+                if features_flag and result["featured_artists"]:
+                    featured_artists = get_artist_list(result["featured_artists"])
+                # Get song lyrics using path
+                lyrics = song_lyrics(path)
+                song_data.append([title, featured_artists, primary_artists, path, lyrics])
+        else: 
+            raise ValueError("Value Error: JSON response object does not contain \"response\". Please review the response object provided.")
+    except KeyError as key_error: 
+        raise KeyError(f"Key Error: {key_error}. Please review response contains hits, result, full_title, path, primary_artists, and featured_artists key if possible")
+    except Exception as error: 
+        raise Exception(f"Exception: {error}. Please review the response provided.")
 
 def get_artist_list(artists_data):
     """Convert primary or featured artists JSON data to list of cleaned artists names.
