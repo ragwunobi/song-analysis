@@ -4,10 +4,12 @@ from utils import search, parse_song
 
 app = Flask(__name__)
 
+
 @app.route("/search/<name>")
-def search_song(name): 
-    response = search(name) 
-    return response.json() 
+def search_song(name):
+    response = search(name)
+    return response.json()
+
 
 @app.route("/songs/<name>")
 def get_songs(

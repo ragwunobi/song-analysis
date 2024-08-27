@@ -14,7 +14,7 @@ from backend.utils import (
     remove_unicode,
     insert_spaces,
     remove_end_digits,
-    parse_song, 
+    parse_song,
     clean_lyrics,
 )
 from unittest.mock import patch, MagicMock
@@ -326,6 +326,7 @@ class TestUtilsFunctions(unittest.TestCase):
         artists = split_artist_names("    Lady Gaga & , & & SZA, Tame Impala")
         expected_result = ["Lady Gaga", "SZA", "Tame Impala"]
         self.assertListEqual(artists, expected_result)
+
 
 if __name__ == "__main__":
     unittest.main()
