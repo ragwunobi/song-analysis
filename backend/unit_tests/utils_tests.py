@@ -19,9 +19,54 @@ from backend.utils import (
 )
 from unittest.mock import patch, MagicMock
 
+#  Import sample GET request response
+path = os.path.join(os.path.dirname(__file__), "sample_response.json")
+with open(path) as response:
+    sample_response = json.load(response)
+
 
 class TestUtilsFunctions(unittest.TestCase):
+
+    def test_parse_song_successful_request(self):
+        """Test with a valid response"""
+        mock_response = MagicMock(spec=requests.Response)
+        mock_response.json = MagicMock(return_value=sample_response)
+        song_data = parse_song(mock_response)
+        expected_song_name = "Rainbow by Kacey Musgraves"
+        expected_featured_artist = []
+        expected_path = "/Kacey-musgraves-rainbow-lyrics"
+        expected_primary_artist = ["Kacey Musgraves"]
+        self.assertEqual(song_data[0][0], expected_song_name)
+        self.assertListEqual(song_data[0][1], expected_featured_artist)
+        self.assertListEqual(song_data[0][2], expected_primary_artist)
+        self.assertEqual(song_data[0][3], expected_path)
+        expected_song_name = "Butterflies by Kacey Musgraves"
+        expected_path = "/Kacey-musgraves-butterflies-lyrics"
+        self.assertEqual(song_data[1][0], expected_song_name)
+        self.assertListEqual(song_data[1][1], expected_featured_artist)
+        self.assertListEqual(song_data[1][2], expected_primary_artist)
+        self.assertEqual(song_data[1][3], expected_path)
+
+    def test_parse_song_value_error(self):
+        """Test input results in value error"""
+        mock_response = MagicMock(spec=requests.Response)
+        mock_response.json = MagicMock(return_value={})
+        with self.assertRaises(ValueError) as value_error:
+            parse_song(mock_response)
+        self.assertEqual(
+            'Value Error: JSON response object does not contain "response". Please review the response object provided.',
+            str(value_error.exception),
+        )
+
+    def test_parse_song_key_error(self):
+        """Test input results in key error"""
+        mock_response = MagicMock(spec=requests.Response)
+        mock_response.json = MagicMock(return_value={"response": {"title": "Espresso"}})
+        with self.assertRaises(KeyError) as key_error:
+            parse_song(mock_response)
+
     def test_search_empty_keyword(self):
+        """Test input is empty string"""
         with self.assertRaises(ValueError):
             search("")
 
@@ -29,11 +74,8 @@ class TestUtilsFunctions(unittest.TestCase):
     def test_search_successful_request(self, mock_get):
         """Test with a valid input artist"""
         self.keyword = "Kacey Musgraves"
-        self.path = os.path.join(os.path.dirname(__file__), "sample_response.json")
-        with open(self.path) as sample_response:
-            mock_response = json.load(sample_response)
-        mock_get.return_value.json.return_value = mock_response["response"]
-        mock_get.return_value.status_code = mock_response["meta"]["status"]
+        mock_get.return_value.json.return_value = sample_response["response"]
+        mock_get.return_value.status_code = sample_response["meta"]["status"]
         response = search(self.keyword)
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.json(), mock_get.return_value.json.return_value)

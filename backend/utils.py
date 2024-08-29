@@ -87,16 +87,15 @@ def parse_song(response, song_data=[], features_flag=True):
                 song_data.append(
                     [title, featured_artists, primary_artists, path, lyrics]
                 )
+            return song_data
         else:
             raise ValueError(
                 'Value Error: JSON response object does not contain "response". Please review the response object provided.'
             )
     except KeyError as key_error:
         raise KeyError(
-            f"Key Error: {key_error}. Please review response contains hits, result, full_title, path, primary_artists, and featured_artists key if possible"
+            f"Key Error: {key_error}. Please review response contains hits, result, full_title, path, primary_artists, and featured_artists keys if possible"
         )
-    except Exception as error:
-        raise Exception(f"Exception: {error}. Please review the response provided.")
 
 
 def get_artist_list(artists_data):
