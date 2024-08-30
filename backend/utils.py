@@ -11,7 +11,7 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 
-def search(keyword, search_params={}):
+def search(keyword, search_params=None):
     """Search the Genius API for a keyword (e.x. artist name)
     Parameters:
     keyword(str): The input search string.
@@ -24,22 +24,24 @@ def search(keyword, search_params={}):
     try:
         url = f"http://api.genius.com/search?q={keyword}"
         response = requests.get(url, headers=headers, params=search_params)
-        # Confirm get request is successful or raise an HTTP Error
         response.raise_for_status()
+        logger.info(f"Get request for keyword: {keyword} is successful.")
         return response
     except requests.exceptions.HTTPError as http_error:
-        raise Exception(f"HTTP Error: {http_error}. Please review the path provided.")
+        raise Exception(
+            f"HTTP Error: {http_error}. URL: {url}. Please review the path provided."
+        )
     except requests.exceptions.Timeout as timeout_error:
         raise Exception(
-            f"Timeout Error: {timeout_error}. Please try the request again."
+            f"Timeout Error: {timeout_error}. URL: {url}. Please try the request again."
         )
     except requests.exceptions.TooManyRedirects as redirects_error:
         raise Exception(
-            f"Too Many Redirects: {redirects_error}. Please review the path provided."
+            f"Too Many Redirects: {redirects_error}. URL: {url}. Please review the path provided."
         )
     except requests.exceptions.RequestException as error:
         raise Exception(
-            f"Request Exception: {error}. Please review the keyword provided."
+            f"Request Exception: {error}. URL: {url}. Please review the keyword provided."
         )
 
 
@@ -117,10 +119,10 @@ def get_artist_list(artist_data):
         if "name" in metadata and metadata["name"]:
             raw_artist_names = metadata["name"]
             # Remove unicode and split strings of multiple artists (e.x. "Calvin Harris & Lana Del Rey")
-            split_artist_names = split_artist_names(
+            individual_artist_names = split_artist_names(
                 remove_unicode(raw_artist_names, unicode_dict)
             )
-            for name in split_artist_names:
+            for name in individual_artist_names:
                 artist_names.append(name)
     return artist_names
 
