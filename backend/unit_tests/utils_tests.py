@@ -27,6 +27,89 @@ with open(path) as response:
 
 class TestUtilsFunctions(unittest.TestCase):
 
+    def test_search_empty_keyword(self):
+        """Test with an empty keyword"""
+        with self.assertRaises(ValueError) as value_error:
+            search("")
+        self.assertEqual(
+            "The keyword cannot be empty. Please provide a valid keyword and try the request again.",
+            str(value_error.exception),
+        )
+
+    @patch("requests.get")
+    def test_search_successful_request(self, mock_get):
+        """Test with a valid input artist"""
+        self.keyword = "Kacey Musgraves"
+        mock_get.return_value.json.return_value = sample_response["response"]
+        mock_get.return_value.status_code = sample_response["meta"]["status"]
+        response = search(self.keyword)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json(), mock_get.return_value.json.return_value)
+
+    @patch("requests.get")
+    def test_search_404_http_error(self, mock_get):
+        """Test input results in 404 HTTP error"""
+        self.keyword = "Kendrick"
+        mock_get.side_effect = requests.exceptions.HTTPError("404 Not Found")
+        mock_get.side_effect.response = requests.Response()
+        mock_get.side_effect.response.status_code = 404
+        with self.assertRaises(Exception) as http_error:
+            search(self.keyword)
+        self.assertEqual(
+            "HTTP 404 Error: 404 Not Found. URL: http://api.genius.com/search?q=Kendrick. Client error. The request contains invalid syntax or cannot be fulfilled. Please check URL and parameters and try the request again.",
+            str(http_error.exception),
+        )
+
+    @patch("requests.get")
+    def test_search_502_http_error(self, mock_get):
+        """Test input results in 502 HTTP error"""
+        self.keyword = "Sabrina Carpenter"
+        mock_get.side_effect = requests.exceptions.HTTPError("502 Bad Gateway")
+        mock_get.side_effect.response = requests.Response()
+        mock_get.side_effect.response.status_code = 502
+        with self.assertRaises(Exception) as http_error:
+            search(self.keyword)
+        self.assertEqual(
+            "HTTP 502 Error: 502 Bad Gateway. URL: http://api.genius.com/search?q=Sabrina Carpenter. Server error. The request appears valid but the server is unable to fulfill it. Please wait a moment and try the request again.",
+            str(http_error.exception),
+        )
+
+    @patch("requests.get")
+    def test_search_timeout_error(self, mock_get):
+        """Test input results in Timeout error"""
+        self.keyword = "SZA"
+        mock_get.side_effect = requests.exceptions.Timeout("Request timeout")
+        with self.assertRaises(Exception) as timeout_error:
+            search(self.keyword)
+        self.assertEqual(
+            "Timeout Error: Request timeout. URL: http://api.genius.com/search?q=SZA. The request timed out. Please check your internet connection and try again.",
+            str(timeout_error.exception),
+        )
+
+    @patch("requests.get")
+    def test_search_redirects_error(self, mock_get):
+        """Test input results in Too Many Redirects error"""
+        self.keyword = "Black Eyed Peas"
+        mock_get.side_effect = requests.exceptions.TooManyRedirects("Redirects error")
+        with self.assertRaises(Exception) as redirects_error:
+            search(self.keyword)
+        self.assertEqual(
+            "Too Many Redirects: Redirects error. URL: http://api.genius.com/search?q=Black Eyed Peas. The request was redirected too many times. Please clear cookies and browser cache and try again.",
+            str(redirects_error.exception),
+        )
+
+    @patch("requests.get")
+    def test_search_request_exception(self, mock_get):
+        """Test input results in Request Exception"""
+        self.keyword = "Jimi Hendrix"
+        mock_get.side_effect = requests.exceptions.RequestException("Request error")
+        with self.assertRaises(Exception) as request_exception:
+            search(self.keyword)
+        self.assertEqual(
+            "Request Exception: Request error. URL: http://api.genius.com/search?q=Jimi Hendrix. Unexpected request exception occurred. Please check URL and parameters and try the request again.",
+            str(request_exception.exception),
+        )
+
     def test_parse_song_successful_request(self):
         """Test with a valid response"""
         mock_response = MagicMock(spec=requests.Response)
@@ -64,69 +147,6 @@ class TestUtilsFunctions(unittest.TestCase):
         mock_response.json = MagicMock(return_value={"response": {"title": "Espresso"}})
         with self.assertRaises(KeyError) as key_error:
             parse_song(mock_response)
-
-    def test_search_empty_keyword(self):
-        """Test input is empty string"""
-        with self.assertRaises(ValueError):
-            search("")
-
-    @patch("requests.get")
-    def test_search_successful_request(self, mock_get):
-        """Test with a valid input artist"""
-        self.keyword = "Kacey Musgraves"
-        mock_get.return_value.json.return_value = sample_response["response"]
-        mock_get.return_value.status_code = sample_response["meta"]["status"]
-        response = search(self.keyword)
-        self.assertEqual(response.status_code, 200)
-        self.assertEqual(response.json(), mock_get.return_value.json.return_value)
-
-    @patch("requests.get")
-    def test_search_404_http_error(self, mock_get):
-        """Test input results in 404 HTTP error"""
-        self.keyword = "Kendrick"
-        mock_get.side_effect = requests.exceptions.HTTPError("404 Not Found")
-        with self.assertRaises(Exception) as http_error:
-            search(self.keyword)
-        self.assertEqual(
-            "HTTP Error: 404 Not Found. Please review the path provided.",
-            str(http_error.exception),
-        )
-
-    @patch("requests.get")
-    def test_search_timeout_error(self, mock_get):
-        """Test input results in Timeout error"""
-        self.keyword = "SZA"
-        mock_get.side_effect = requests.exceptions.Timeout("Request timeout")
-        with self.assertRaises(Exception) as timeout_error:
-            search(self.keyword)
-        self.assertEqual(
-            "Timeout Error: Request timeout. Please try the request again.",
-            str(timeout_error.exception),
-        )
-
-    @patch("requests.get")
-    def test_search_redirects_error(self, mock_get):
-        """Test input results in Too Many Redirects error"""
-        self.keyword = "Black Eyed Peas"
-        mock_get.side_effect = requests.exceptions.TooManyRedirects("Redirects error")
-        with self.assertRaises(Exception) as redirects_error:
-            search(self.keyword)
-        self.assertEqual(
-            "Too Many Redirects: Redirects error. Please review the path provided.",
-            str(redirects_error.exception),
-        )
-
-    @patch("requests.get")
-    def test_search_requests_exception(self, mock_get):
-        """Test input results in Request Exception"""
-        self.keyword = "Jimmy Hendrix"
-        mock_get.side_effect = requests.exceptions.RequestException("Request error")
-        with self.assertRaises(Exception) as request_exception:
-            search(self.keyword)
-        self.assertEqual(
-            "Request Exception: Request error. Please review the keyword provided.",
-            str(request_exception.exception),
-        )
 
     def test_clean_lyrics_no_start(self):
         """Test input where start pattern does not match"""

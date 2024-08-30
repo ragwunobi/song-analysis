@@ -1,4 +1,5 @@
 import requests
+from requests.exceptions import HTTPError, Timeout, TooManyRedirects, RequestException
 from config import headers, unicode_dict
 from bs4 import BeautifulSoup
 import re
@@ -12,37 +13,65 @@ logger = logging.getLogger(__name__)
 
 
 def search(keyword, search_params=None):
-    """Search the Genius API for a keyword (e.x. artist name)
+    """
+    Search the Genius API for a keyword (e.x. artist name)
     Parameters:
-    keyword(str): The input search string.
-    search_params(dict): Optional parameters dictionary (e.x. page number, results per page)
+    - keyword(str): The input search string.
+    - search_params(dict,optional): Dictionary of parameters (e.x. page number, results per page). Default is None.
+
     Returns:
-    A requests response object or raises an exception
+    - requests.Response: A response object from the requests library.
+
+    Raises:
+    - ValueError: If the keyword parameter is empty.
+    - HTTPError: If there is a client or server HTTPError.
+    - Timeout: If the request times out.
+    - TooManyRedirects: If the request is redirected too many times.
+    - RequestException: If an unexpected request exception occurs.
     """
     if not keyword:
-        raise ValueError("Please confirm the keyword is not empty.")
+        logger.error("Attempted search with an empty keyword.")
+        raise ValueError(
+            "The keyword cannot be empty. Please provide a valid keyword and try the request again."
+        )
+    url = f"http://api.genius.com/search?q={keyword}"
     try:
-        url = f"http://api.genius.com/search?q={keyword}"
+        logger.info(f"Attempting search request for '{keyword}'.")
         response = requests.get(url, headers=headers, params=search_params)
         response.raise_for_status()
-        logger.info(f"Get request for keyword: {keyword} is successful.")
+        logger.info(f"Successfully completed search request for keyword: '{keyword}'.")
         return response
-    except requests.exceptions.HTTPError as http_error:
+
+    except HTTPError as http_error:
+        status_code = http_error.response.status_code
+        logger.error(f"HTTP Error {status_code}: {http_error}. URL: {url}.")
+        if 400 <= status_code < 500:
+            exception_message = "Client error. The request contains invalid syntax or cannot be fulfilled. Please check URL and parameters and try the request again."
+        elif status_code >= 500:
+            exception_message = "Server error. The request appears valid but the server is unable to fulfill it. Please wait a moment and try the request again."
+        else:
+            exception_message = "Unexpected error occurred. Please check URL and parameters and try the request again."
         raise Exception(
-            f"HTTP Error: {http_error}. URL: {url}. Please review the path provided."
-        )
-    except requests.exceptions.Timeout as timeout_error:
+            f"HTTP {status_code} Error: {http_error}. URL: {url}. {exception_message}"
+        ) from http_error
+
+    except Timeout as timeout_error:
+        logger.error(f"Timeout Error: {timeout_error}. URL: {url}.")
         raise Exception(
-            f"Timeout Error: {timeout_error}. URL: {url}. Please try the request again."
-        )
-    except requests.exceptions.TooManyRedirects as redirects_error:
+            f"Timeout Error: {timeout_error}. URL: {url}. The request timed out. Please check your internet connection and try again."
+        ) from timeout_error
+
+    except TooManyRedirects as redirects_error:
+        logger.error(f"Too Many Redirects: {redirects_error}. URL: {url}.")
         raise Exception(
-            f"Too Many Redirects: {redirects_error}. URL: {url}. Please review the path provided."
-        )
-    except requests.exceptions.RequestException as error:
+            f"Too Many Redirects: {redirects_error}. URL: {url}. The request was redirected too many times. Please clear cookies and browser cache and try again."
+        ) from redirects_error
+
+    except RequestException as error:
+        logger.error(f"Request Exception: {error}. URL: {url}.")
         raise Exception(
-            f"Request Exception: {error}. URL: {url}. Please review the keyword provided."
-        )
+            f"Request Exception: {error}. URL: {url}. Unexpected request exception occurred. Please check URL and parameters and try the request again."
+        ) from error
 
 
 def split_artist_names(artist_names, delimiters=r",|&"):
@@ -141,13 +170,13 @@ def song_lyrics(path):
         # Clean lyrics and return
         lyrics = clean_lyrics(response)
         return lyrics
-    except requests.exceptions.Timeout as timeout_error:
+    except Timeout as timeout_error:
         raise Exception(f"Timeout error: {timeout_error}. Please review your request.")
-    except requests.exceptions.TooManyRedirects as redirects_error:
+    except TooManyRedirects as redirects_error:
         raise Exception(
             f"Too many redirects: {redirects_error}. Please review the path provided."
         )
-    except requests.exceptions.RequestException as error:
+    except RequestException as error:
         raise SystemExit(f"Exception: {error}. Please review your request.")
 
 
