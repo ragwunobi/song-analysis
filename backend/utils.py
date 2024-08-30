@@ -2,6 +2,13 @@ import requests
 from config import headers, unicode_dict
 from bs4 import BeautifulSoup
 import re
+import logging
+
+# Configure logging
+logging.basicConfig(
+    level=logging.DEBUG, format="%(asctime)s - %(levelname)s - %(message)s"
+)
+logger = logging.getLogger(__name__)
 
 
 def search(keyword, search_params={}):
@@ -98,23 +105,24 @@ def parse_song(response, song_data=[], features_flag=True):
         )
 
 
-def get_artist_list(artists_data):
-    """Convert primary or featured artists JSON data to list of cleaned artists names.
+def get_artist_list(artist_data):
+    """Convert primary or featured artists JSON data to a list of cleaned artists names.
     Parameters:
     artist_data(dict): Primary or featured artist JSON data (e.x. result["featured_artists"])
     Returns:
     aritst_names_list(list): A list of cleaned artist names
     """
-    artists_names_list = []
-    for metadata in artists_data:
-        multiple_artist_names = metadata["name"]
-        # Clean name by removing unicode and splitting strings of multiple artists (e.x. "Calvin Harris & Lana Del Rey")
-        cleaned_artist_names = split_artist_names(
-            remove_unicode(multiple_artist_names, unicode_dict)
-        )
-        for individual_name in cleaned_artist_names:
-            artists_names_list.append(individual_name)
-    return artists_names_list
+    artist_names = []
+    for metadata in artist_data:
+        if "name" in metadata and metadata["name"]:
+            raw_artist_names = metadata["name"]
+            # Remove unicode and split strings of multiple artists (e.x. "Calvin Harris & Lana Del Rey")
+            split_artist_names = split_artist_names(
+                remove_unicode(raw_artist_names, unicode_dict)
+            )
+            for name in split_artist_names:
+                artist_names.append(name)
+    return artist_names
 
 
 def song_lyrics(path):
