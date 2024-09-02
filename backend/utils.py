@@ -20,7 +20,7 @@ def search(keyword, search_params=None):
     - search_params(dict,optional): Dictionary of parameters (e.x. page number, results per page). Default is None.
 
     Returns:
-    - requests.Response: A response object from the requests library.
+    - response(requests.Response): A response object from the requests library.
 
     Raises:
     - ValueError: If the keyword parameter is empty.
@@ -75,16 +75,18 @@ def search(keyword, search_params=None):
 
 
 def split_artist_names(artist_names, delimiters=r",|&"):
-    """Split a delimited string of artist names into an array of individual artists
+    """
+    Split a delimited string of artist names into a list of individual artists.
     Parameters:
-    artist_names(string): An input string of artist name(s)
-    delimiter(str): Regex string of delimiters to split on
+    - artist_names(str): The input string of artist name(s).
+    - delimiters(str, optional): A regex string of delimiters to split on. Default pattern matches , or &.
+
     Returns:
-    cleaned_artist_names(list): A list of individual artist names parsed from input string
+    - cleaned_artist_names(list): A list of individual artist names parsed from the input string.
     """
     if len(artist_names) == 0 or artist_names.isspace():
         return []
-    # Split a string of artist names into a list
+    # Split a string of artist names into a list of individual names
     split_artist_names = re.split(r"\s*" + delimiters + r"\s*", artist_names.strip())
     # Clean empty or whitespace elements from the list
     cleaned_artist_names = [name.strip() for name in split_artist_names if name.strip()]
@@ -92,61 +94,82 @@ def split_artist_names(artist_names, delimiters=r",|&"):
 
 
 def parse_song(response, song_data=[], features_flag=True):
-    """Get a list of title, path, lyrics, primary artists, and featured artists (optional) for each song in a response object
+    """
+    Get a list of title, path, lyrics, primary artists, and featured artists (optional) for each song in a response object.
     Parameters:
-    response(Requests.response): JSON response from Genius API GET request
-    features(bool): Boolean flag (T/F) to get a song's featured artists
+    - response(requests.Response): A response object from the requests library.
+    - song_data(list): The input list that song data will be appended to. Default is an empty list.
+    - features_flag(bool, optional): Boolean (T/F) flag to get a song's featured artists.
+
     Returns:
-    song_data(list(list)): A list of lists (title, path, lyrics, primary artists, and featured artists (optional)) for each song
+    - song_data(list(list)): A list of of lists (title, path, lyrics, primary artists, and featured artists (optional)) for each song.
+
+    Raises:
+    - ValueError: If the JSON object or "response" key cannot be parsed from the response parameter.
+    - KeyError: If the JSON object does not contain a required key.
     """
     try:
-        if "response" in response.json():
-            response = response.json()["response"]
+        response_json = response.json()
+    except ValueError as value_error:
+        logger.error("Value Error: JSON data could not be parsed from the response.")
+        raise ValueError(
+            "Value Error: JSON data could not be parsed from the response. Please provide a valid response and try your request again."
+        ) from value_error
+    try:
+        if "response" in response_json:
+            response = response_json["response"]
             # Iterate through each song in response
             for song in response["hits"]:
                 result = song["result"]
                 title = path = ""
                 primary_artists = featured_artists = []
                 # Get song title
-                if result["full_title"]:
+                if result.get("full_title"):
                     # Replace unicode expressions from the title
-                    title = remove_unicode(result["full_title"], unicode_dict)
+                    title = remove_unicode(result.get("full_title"), unicode_dict)
                 # Get song path
-                if result["path"]:
-                    path = result["path"]
+                if result.get("path"):
+                    path = result.get("path")
                 # Get list of primary artists
-                if result["primary_artists"]:
-                    primary_artists = get_artist_list(result["primary_artists"])
+                if result.get("primary_artists"):
+                    primary_artists = get_artist_list(result.get("primary_artists"))
                 # Get list of featured artists
-                if features_flag and result["featured_artists"]:
-                    featured_artists = get_artist_list(result["featured_artists"])
+                if features_flag and result.get("featured_artists"):
+                    featured_artists = get_artist_list(result.get("featured_artists"))
                 # Get song lyrics using path
                 lyrics = song_lyrics(path)
                 song_data.append(
                     [title, featured_artists, primary_artists, path, lyrics]
                 )
+                logger.info(f"Successfuly parsed song data from '{title}'.")
             return song_data
         else:
+            logger.error(
+                'Value Error: requests.Response JSON object does not contain the "response" key.'
+            )
             raise ValueError(
-                'Value Error: JSON response object does not contain "response". Please review the response object provided.'
+                'Value Error: requests.Response JSON object does not contain the "response" key. Please review the response object provided.'
             )
     except KeyError as key_error:
+        logger.error(f"KeyError: {key_error}.")
         raise KeyError(
-            f"Key Error: {key_error}. Please review response contains hits, result, full_title, path, primary_artists, and featured_artists keys if possible"
-        )
+            f"Key Error: {key_error}. Please confirm the JSON object contains relevant keys."
+        ) from key_error
 
 
 def get_artist_list(artist_data):
-    """Convert primary or featured artists JSON data to a list of cleaned artists names.
+    """
+    Convert primary or featured artists JSON data to a list of cleaned artists name.
     Parameters:
-    artist_data(dict): Primary or featured artist JSON data (e.x. result["featured_artists"])
+    - artist_data(dict): Primary or featured artists JSON data (e.x. result["featured_artists"])
+
     Returns:
-    aritst_names_list(list): A list of cleaned artist names
+    - artist_names(list): A list of cleaned artist names.
     """
     artist_names = []
     for metadata in artist_data:
         if "name" in metadata and metadata["name"]:
-            raw_artist_names = metadata["name"]
+            raw_artist_names = metadata.get("name")
             # Remove unicode and split strings of multiple artists (e.x. "Calvin Harris & Lana Del Rey")
             individual_artist_names = split_artist_names(
                 remove_unicode(raw_artist_names, unicode_dict)

@@ -14,6 +14,7 @@ from backend.utils import (
     remove_unicode,
     insert_spaces,
     remove_end_digits,
+    get_artist_list,
     parse_song,
     clean_lyrics,
 )
@@ -110,15 +111,63 @@ class TestUtilsFunctions(unittest.TestCase):
             str(request_exception.exception),
         )
 
+    def test_split_artist_names_empty_string(self):
+        """Test input of an empty string"""
+        artists = split_artist_names("")
+        expected_result = []
+        self.assertListEqual(artists, expected_result)
+
+    def test_split_artist_names_one_whitespace(self):
+        """Test input with one whitespace"""
+        artists = split_artist_names(" ")
+        expected_result = []
+        self.assertListEqual(artists, expected_result)
+
+    def test_split_artist_names_multiple_whitespace(self):
+        """Test input with multiple whitespaces"""
+        artists = split_artist_names("        ")
+        expected_result = []
+        self.assertListEqual(artists, expected_result)
+
+    def test_split_artist_names_multiple_commas(self):
+        """Test input with commas between artist names"""
+        artists = split_artist_names("J. Balvin, Bad Bunny, The Weekend, Rihanna ")
+        expected_result = ["J. Balvin", "Bad Bunny", "The Weekend", "Rihanna"]
+        self.assertListEqual(artists, expected_result)
+
+    def test_split_artist_names_multiple_ampersands(self):
+        """Test input with ampersand between artist names"""
+        artists = split_artist_names("J. Balvin & Bad Bunny & The Weekend & Rihanna ")
+        expected_result = ["J. Balvin", "Bad Bunny", "The Weekend", "Rihanna"]
+        self.assertListEqual(artists, expected_result)
+
+    def test_split_artist_names_commas_and_whitespace(self):
+        """Test input with commas and whitespace"""
+        artists = split_artist_names("    ,   ,  ")
+        expected_result = []
+        self.assertListEqual(artists, expected_result)
+
+    def test_split_artist_names_commas_and_ampersand(self):
+        """Test input with commas and ampersand between artist names"""
+        artists = split_artist_names("Lana Del Rey, Calvin Harris, & Doja Cat")
+        expected_result = ["Lana Del Rey", "Calvin Harris", "Doja Cat"]
+        self.assertListEqual(artists, expected_result)
+
+    def test_split_artist_names_multiple_commas_and_ampersands(self):
+        """Test input with multiple commas and ampersands between artist names"""
+        artists = split_artist_names("   & Lady Gaga & , & & SZA, Tame Impala,")
+        expected_result = ["Lady Gaga", "SZA", "Tame Impala"]
+        self.assertListEqual(artists, expected_result)
+
     def test_parse_song_successful_request(self):
         """Test with a valid response"""
         mock_response = MagicMock(spec=requests.Response)
         mock_response.json = MagicMock(return_value=sample_response)
-        song_data = parse_song(mock_response)
         expected_song_name = "Rainbow by Kacey Musgraves"
         expected_featured_artist = []
         expected_path = "/Kacey-musgraves-rainbow-lyrics"
         expected_primary_artist = ["Kacey Musgraves"]
+        song_data = parse_song(mock_response)
         self.assertEqual(song_data[0][0], expected_song_name)
         self.assertListEqual(song_data[0][1], expected_featured_artist)
         self.assertListEqual(song_data[0][2], expected_primary_artist)
@@ -130,23 +179,63 @@ class TestUtilsFunctions(unittest.TestCase):
         self.assertListEqual(song_data[1][2], expected_primary_artist)
         self.assertEqual(song_data[1][3], expected_path)
 
-    def test_parse_song_value_error(self):
-        """Test input results in value error"""
+    def test_parse_song_invalid_json(self):
+        """Test input does not contain valid JSON"""
         mock_response = MagicMock(spec=requests.Response)
-        mock_response.json = MagicMock(return_value={})
+        mock_response.json.side_effect = ValueError(
+            "Requests.response does not contain JSON"
+        )
         with self.assertRaises(ValueError) as value_error:
             parse_song(mock_response)
         self.assertEqual(
-            'Value Error: JSON response object does not contain "response". Please review the response object provided.',
+            "Value Error: JSON data could not be parsed from the response. Please provide a valid response and try your request again.",
+            str(value_error.exception),
+        )
+
+    def test_parse_song_missing_response_key(self):
+        """Test input does not contain the response key"""
+        mock_response = MagicMock(spec=requests.Response)
+        mock_response.json = MagicMock(return_value={"test": 2})
+        with self.assertRaises(ValueError) as value_error:
+            parse_song(mock_response)
+        self.assertEqual(
+            'Value Error: requests.Response JSON object does not contain the "response" key. Please review the response object provided.',
             str(value_error.exception),
         )
 
     def test_parse_song_key_error(self):
         """Test input results in key error"""
         mock_response = MagicMock(spec=requests.Response)
-        mock_response.json = MagicMock(return_value={"response": {"title": "Espresso"}})
+        mock_response.json = MagicMock(return_value={"response": {"hits": [{}]}})
         with self.assertRaises(KeyError) as key_error:
             parse_song(mock_response)
+        self.assertEqual(
+            "\"Key Error: 'result'. Please confirm the JSON object contains relevant keys.\"",
+            str(key_error.exception),
+        )
+
+    def test_get_artist_list_single_artist(self):
+        """Test input is one artist"""
+        primary_artists = sample_response["response"]["hits"][4]["result"][
+            "primary_artists"
+        ]
+        cleaned_artist_names = get_artist_list(primary_artists)
+        expected_result = ["Kacey Musgraves"]
+        self.assertListEqual(cleaned_artist_names, expected_result)
+
+    def test_get_artist_list_punctuation(self):
+        """Test input is list of punctuation"""
+        primary_artists = [{"name": "&&&,,,,"}]
+        cleaned_artist_names = get_artist_list(primary_artists)
+        expected_result = []
+        self.assertListEqual(cleaned_artist_names, expected_result)
+
+    def test_get_artist_list_multiple_artists(self):
+        """Test input is multiple artists"""
+        primary_artists = [{"name": "Lady Gaga &&& , The Maria\u2019s,  Taylor Swift"}]
+        cleaned_arist_names = get_artist_list(primary_artists)
+        expected_result = ["Lady Gaga", "The Maria's", "Taylor Swift"]
+        self.assertListEqual(cleaned_arist_names, expected_result)
 
     def test_clean_lyrics_no_start(self):
         """Test input where start pattern does not match"""
@@ -340,54 +429,6 @@ class TestUtilsFunctions(unittest.TestCase):
         cleaned_artist_name = remove_unicode(artist_name, unicode_dict)
         expected_result = "     "
         self.assertEqual(cleaned_artist_name, expected_result)
-
-    def test_split_artist_names_empty_string(self):
-        """Test input of an empty string"""
-        artists = split_artist_names("")
-        expected_result = []
-        self.assertListEqual(artists, expected_result)
-
-    def test_split_artist_names_one_whitespace(self):
-        """Test input with one whitespace"""
-        artists = split_artist_names(" ")
-        expected_result = []
-        self.assertListEqual(artists, expected_result)
-
-    def test_split_artist_names_multiple_whitespace(self):
-        """Test input with multiple whitespaces"""
-        artists = split_artist_names("        ")
-        expected_result = []
-        self.assertListEqual(artists, expected_result)
-
-    def test_split_artist_names_multiple_commas(self):
-        """Test input with commas between artist names"""
-        artists = split_artist_names("J. Balvin, Bad Bunny, The Weekend, Rihanna ")
-        expected_result = ["J. Balvin", "Bad Bunny", "The Weekend", "Rihanna"]
-        self.assertListEqual(artists, expected_result)
-
-    def test_split_artist_names_multiple_ampersands(self):
-        """Test input with ampersand between artist names"""
-        artists = split_artist_names("J. Balvin & Bad Bunny & The Weekend & Rihanna ")
-        expected_result = ["J. Balvin", "Bad Bunny", "The Weekend", "Rihanna"]
-        self.assertListEqual(artists, expected_result)
-
-    def test_split_artist_names_commas_and_whitespace(self):
-        """Test input with commas and whitespace"""
-        artists = split_artist_names("    ,   ,  ")
-        expected_result = []
-        self.assertListEqual(artists, expected_result)
-
-    def test_split_artist_names_commas_and_ampersand(self):
-        """Test input with commas and ampersand between artist names"""
-        artists = split_artist_names("Lana Del Rey, Calvin Harris, & Doja Cat")
-        expected_result = ["Lana Del Rey", "Calvin Harris", "Doja Cat"]
-        self.assertListEqual(artists, expected_result)
-
-    def test_split_artist_names_multiple_commas_and_ampersands(self):
-        """Test input with multiple commas and ampersands between artist names"""
-        artists = split_artist_names("    Lady Gaga & , & & SZA, Tame Impala")
-        expected_result = ["Lady Gaga", "SZA", "Tame Impala"]
-        self.assertListEqual(artists, expected_result)
 
 
 if __name__ == "__main__":
