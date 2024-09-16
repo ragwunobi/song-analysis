@@ -15,6 +15,7 @@ from backend.utils import (
     insert_spaces,
     remove_end_digits,
     get_artist_list,
+    song_lyrics,
     parse_song,
     clean_lyrics,
 )
@@ -236,6 +237,89 @@ class TestUtilsFunctions(unittest.TestCase):
         cleaned_arist_names = get_artist_list(primary_artists)
         expected_result = ["Lady Gaga", "The Maria's", "Taylor Swift"]
         self.assertListEqual(cleaned_arist_names, expected_result)
+
+    def test_song_lyrics_empty_path(self):
+        """Test with an empty path"""
+        with self.assertRaises(ValueError) as value_error:
+            song_lyrics("")
+        self.assertEqual(
+            "The path cannot be empty. Please provide a valid path and try the request again.",
+            str(value_error.exception),
+        )
+
+    @patch("requests.get")
+    def test_song_lyrics_successful_request(self, mock_get):
+        """Test with a valid path"""
+        self.path = "/Taylor-swift-karma-lyrics"
+        response = Mock()
+        response.text = "Karma is the breeze in my hair on the weekend. Karma\u2019s a relaxing thought"
+        mock_get.return_value = response
+        cleaned_lyrics = song_lyrics(self.path)
+        expected_lyrics = (
+            "Karma is the breeze in my hair on the weekend. Karma's a relaxing thought"
+        )
+        self.assertEqual(cleaned_lyrics, expected_lyrics)
+
+    @patch("requests.get")
+    def test_song_lyrics_http_error(self, mock_get):
+        """Test input results in 404 HTTP error"""
+        self.path = "/Taylor-swift-karma-lyric"
+        mock_get.side_effect = requests.exceptions.HTTPError("404 Not Found")
+        mock_get.side_effect.response = requests.Response()
+        mock_get.side_effect.response.status_code = 404
+        with self.assertRaises(Exception) as http_error:
+            song_lyrics(self.path)
+        self.assertEqual(
+            "HTTP 404 Error: 404 Not Found. URL: https://genius.com/Taylor-swift-karma-lyric. Client error. The request contains invalid syntax or cannot be fulfilled. Please check URL and try the request again.",
+            str(http_error.exception),
+        )
+
+    @patch("requests.get")
+    def test_song_lyrics_502_http_error(self, mock_get):
+        """Test input results in 502 HTTP error"""
+        self.path = "/Taylor-swift-bad-gateway"
+        mock_get.side_effect = requests.exceptions.HTTPError("502 Bad Gateway")
+        mock_get.side_effect.response = requests.Response()
+        mock_get.side_effect.response.status_code = 502
+        with self.assertRaises(Exception) as http_error:
+            song_lyrics(self.path)
+        self.assertEqual(
+            "HTTP 502 Error: 502 Bad Gateway. URL: https://genius.com/Taylor-swift-bad-gateway. Server error. The request appears valid but the server is unable to fulfill it. Please wait a moment and try the request again.",
+            str(http_error.exception),
+        )
+        """Test input results in Timeout error"""
+        self.path = "/Fun-some-nights-lyrics"
+        mock_get.side_effect = requests.exceptions.Timeout("Request timeout")
+        with self.assertRaises(Exception) as timeout_error:
+            song_lyrics(self.path)
+        self.assertEqual(
+            "Timeout Error: Request timeout. URL: https://genius.com/Fun-some-nights-lyrics. The request timed out. Please check your internet connection and try again.",
+            str(timeout_error.exception),
+        )
+
+    @patch("requests.get")
+    def test_song_lyrics_redirects_error(self, mock_get):
+        """Test input results in Too Many Redirects error"""
+        self.path = "/Lady-gaga-and-bruno-mars-die-with-a-smile-lyrics"
+        mock_get.side_effect = requests.exceptions.TooManyRedirects("Redirects error")
+        with self.assertRaises(Exception) as redirects_error:
+            song_lyrics(self.path)
+        self.assertEqual(
+            "Too Many Redirects: Redirects error. URL: https://genius.com/Lady-gaga-and-bruno-mars-die-with-a-smile-lyrics. The request was redirected too many times. Please clear cookies and browser cache and try again.",
+            str(redirects_error.exception),
+        )
+
+    @patch("requests.get")
+    def test_song_lyrics_request_exception(self, mock_get):
+        """Test input results in Request Exception"""
+        self.path = "/Adele-rolling-in-the-deep-lyrics"
+        mock_get.side_effect = requests.exceptions.RequestException("Request error")
+        with self.assertRaises(Exception) as request_exception:
+            song_lyrics(self.path)
+        self.assertEqual(
+            "Request Exception: Request error. URL: https://genius.com/Adele-rolling-in-the-deep-lyrics. Unexpected request exception occurred. Please check URL and parameters and try the request again.",
+            str(request_exception.exception),
+        )
 
     def test_clean_lyrics_no_start(self):
         """Test input where start pattern does not match"""

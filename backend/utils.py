@@ -180,27 +180,67 @@ def get_artist_list(artist_data):
 
 
 def song_lyrics(path):
-    """Scrape song lyrics and clean text
-    Parameters:
-    path(str): Path of song to scrape with GET request
-    Returns:
-    lyrics(str): Cleaned string of song lyrics or raises an exception
     """
+    Scrape and clean song lyrics.
+    Parameters:
+    path(str): The path of the song to scrape with GET request. Appended to https://genius.com.
+
+    Returns:
+    lyrics(str): A cleaned string of song lyrics.
+
+    Raises:
+    - ValueError: If the path parameter is empty.
+    - HTTPError: If there is a client or server HTTPError.
+    - Timeout: If the request times out.
+    - TooManyRedirects: If the request is redirected too many times.
+    - RequestException: If an unexpected request exception occurs.
+    """
+    if not path:
+        logger.error("Attempted request with an empty path.")
+        raise ValueError(
+            "The path cannot be empty. Please provide a valid path and try the request again."
+        )
     url = f"https://genius.com{path}"
     try:
         # Scrape song lyrics from Genius site
         response = requests.get(url, headers=headers)
         # Clean lyrics and return
         lyrics = clean_lyrics(response)
+        logger.info(f"Successfully completed get request for path: '{path}'")
         return lyrics
-    except Timeout as timeout_error:
-        raise Exception(f"Timeout error: {timeout_error}. Please review your request.")
-    except TooManyRedirects as redirects_error:
+
+    except HTTPError as http_error:
+        status_code = http_error.response.status_code
+        logger.error(f"HTTP Error {status_code}: {http_error}. URL: {url}.")
+        if 400 <= status_code < 500:
+            exception_message = "Client error. The request contains invalid syntax or cannot be fulfilled. Please check URL and try the request again."
+        elif status_code >= 500:
+            exception_message = "Server error. The request appears valid but the server is unable to fulfill it. Please wait a moment and try the request again."
+        else:
+            exception_message = (
+                "Unexpected error occurred. Please check URL and try the request again."
+            )
         raise Exception(
-            f"Too many redirects: {redirects_error}. Please review the path provided."
-        )
+            f"HTTP {status_code} Error: {http_error}. URL: {url}. {exception_message}"
+        ) from http_error
+
+    except Timeout as timeout_error:
+        logger.error(f"Timeout Error: {timeout_error}. URL: {url}.")
+        raise Exception(
+            f"Timeout Error: {timeout_error}. URL: {url}. The request timed out. Please check your internet connection and try again."
+        ) from timeout_error
+
+    except TooManyRedirects as redirects_error:
+        logger.error(f"Too Many Redirects: {redirects_error}. URL: {url}.")
+        raise Exception(
+            f"Too Many Redirects: {redirects_error}. URL: {url}. The request was redirected too many times. Please clear cookies and browser cache and try again."
+        ) from redirects_error
+
     except RequestException as error:
-        raise SystemExit(f"Exception: {error}. Please review your request.")
+        logger.error(f"Request Exception: {error}. URL: {url}.")
+        raise Exception(
+            f"Request Exception: {error}. URL: {url}. Unexpected request exception occurred. Please check URL and parameters and try the request again."
+        ) from error
 
 
 def clean_lyrics(response, start_pattern=r"Lyrics[", end_pattern=r"Embed"):
