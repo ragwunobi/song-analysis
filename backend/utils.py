@@ -317,11 +317,13 @@ def clean_lyrics(response, start_pattern=r"Lyrics[", end_pattern=r"Embed"):
 
 
 def remove_end_digits(content):
-    """Cleans digits at the end of a string.
+    """
+    Remove digits at the end of a string.
     Parameters:
-    content(str): An input string of lyrics.
+    - content(str): An input string of lyrics.
+
     Returns:
-    content(str): An input string with digits at the end removed.
+    - content(str): A string with the digits at the end removed.
     """
     if len(content) == 0:
         return ""
@@ -333,16 +335,23 @@ def remove_end_digits(content):
 
 
 def insert_spaces(content, regex=[]):
-    """Insert a space between the two groups in each matching regex pattern
-    Parameters:
-    content(str): Input string to insert spaces into
-    regex(list):  Optional list of regex patterns (each pattern has 2 groups)
-    Returns:
-    cleaned_content(str): Input string with space inserted between each regex pattern
+    """
+     Insert a space between the two groups in each matching regex pattern.
+     Parameters:
+     - content(str): An input string of lyrics.
+     - regex(list, optional):  A list of regex patterns. Each pattern has two groups. Default is an empty list.
+
+     Returns:
+    - cleaned_content(str): A string with a space inserted between each regex pattern.
+
+    Raises:
+    - ValueError: If the regex patterns have more than two groups or cannot be compiled.
+    - TypeError: If the patterns are not a valid type for regular expressions.
+    - Exception: If an unexpected exception occurs.
+
     """
     if len(content) == 0 or content.isspace():
         return content
-    cleaned_content = content
     for pattern in regex:
         # Match regex pattern and insert a space between groups
         try:
@@ -351,7 +360,7 @@ def insert_spaces(content, regex=[]):
                 raise ValueError(
                     f"Regex error. Please confirm your regular expression has exactly two groups."
                 )
-            cleaned_content = re.sub(pattern, r"\1 \2", cleaned_content)
+            cleaned_content = re.sub(pattern, r"\1 \2", content)
         except re.error as re_error:
             raise ValueError(
                 f"Regex error: {re_error}. Please review your regular expressions."
@@ -368,12 +377,14 @@ def insert_spaces(content, regex=[]):
 
 
 def remove_unicode(content, unicode_dict={}):
-    """Replace unicode expressions with plaintext in an input string
+    """
+    Replace unicode expressions with plaintext.
     Parameters:
-    content(str): An input string to remove unicode expressions from
-    unicode_dict(dict): Optional dictionary of (target unicode string : replacement plaintext string) pairs
+    - content(str): An input string.
+    - unicode_dict(dict, optional): A dictionary of (target unicode string : replacement plaintext string) pairs. Default is an empty dictionary.
+
     Returns:
-    content(str): The cleaned input string with dictionary's unicode keys replaced with plaintext values
+    - content(str): A string with dictionary's unicode keys replaced with plaintext values.
     """
     if len(content) == 0 or content.isspace():
         return content
