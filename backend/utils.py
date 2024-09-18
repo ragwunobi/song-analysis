@@ -243,57 +243,77 @@ def song_lyrics(path):
         ) from error
 
 
-def clean_lyrics(response, start_pattern=r"Lyrics[", end_pattern=r"Embed"):
-    """Clean and format the lyrics from a Response object.
-    Remove digits at the end of lyrics, replace unicode expressions with plaintext, and insert spaces between lines.
-    Parameters:
-    response(Requests.response): Response object from GET Request.
-    start_pattern(str): Optional string pattern to match start of lyrics.
-    end_pattern(str): Optional string pattern to match end of lyrics.
-    Returns:
-    lyrics(str): String of cleaned lyrics.
+def extract_lyrics(page_data, start_pattern, end_pattern):
     """
+    Extract lyrics from a string.
+    Parameters:
+    - page_data: A string of HTML page data converted to plaintext.
+    - start_pattern(str): The string pattern to match the start of lyrics.
+    - end_pattern(str): The string pattern to match the end of lyrics.
+
+    Returns:
+    - extracted_lyrics(str): A string of extracted lyrics.
+    """
+    # Find index where lyrics start
+    start = page_data.find(start_pattern)
+    if start == -1:
+        start = 0
+        logger.error(f"Start pattern: {start_pattern} could not be found.")
+    else:
+        start += len(start_pattern)
+    # Find index where lyrics end[]
+    end = page_data.find(end_pattern)
+    if end == -1:
+        end = len(page_data)
+        logger.error(f"End pattern: {end_pattern} could not be found.")
+    # Extract lyrics from page data
+    extracted_lyrics = page_data[start:end]
+    return extracted_lyrics
+
+
+def clean_lyrics(response, start_pattern=r"Lyrics[", end_pattern=r"Embed"):
+    """
+    Clean and format the lyrics from a Response object. Remove end digts, replace unicode expressions with plaintext, and insert spaces between lines.
+    Parameters:
+    - response(requests.Response): A response object from the requests library.
+    - start_pattern(str,optional): The string pattern to match the start of lyrics.
+    - end_pattern(str, optional): The string pattern to match the end of lyrics.
+
+    Returns:
+    - lyrics(str): A string of cleaned lyrics.
+
+    Raises:
+    - ValueError: If the response object cannot be parsed and cleaned.
+    """
+    # Parse HTML and extract plaintext lyrics
     try:
         soup = BeautifulSoup(response.text, "html.parser")
     except Exception as error:
         raise ValueError(
-            f"Exception: {error}. Please review and confirm your response object is valid."
+            f"Exception: {error}. Your response could not be parsed by BeautifulSoup. Please confirm your response object is valid."
         )
     try:
-        lyrics = soup.get_text()
-        if len(lyrics) == 0:
+        page_data = soup.get_text()
+        if len(page_data) == 0:
             return ""
-
-        # Find index where lyrics start
-        start = lyrics.find(start_pattern)
-        if start == -1:
-            start = 0
-        else:
-            start += len(start_pattern)
-        # Find index where lyrics end
-        end = lyrics.find(end_pattern)
-        if end == -1:
-            end = len(lyrics)
-        # Get lyrics section of the response (exclude other page information)
-        lyrics = lyrics[start:end]
-
-        # Clean lyrics
+        # Extract lyrics
+        extracted_lyrics = extract_lyrics(page_data, start_pattern, end_pattern)
+        # Clean Lyrics
         # Remove digits at the end of lyrics
-        lyrics = remove_end_digits(lyrics)
+        cleaned_lyrics = remove_end_digits(extracted_lyrics)
         # Replace unicode expressions with plaintext
-        lyrics = remove_unicode(lyrics, unicode_dict)
-
+        cleaned_lyrics = remove_unicode(cleaned_lyrics, unicode_dict)
         # Format lyrics
         # Use regex matching to insert spaces between lines
-        lyrics = insert_spaces(
-            lyrics,
+        cleaned_lyrics = insert_spaces(
+            cleaned_lyrics,
             regex=[r"([a-z.,!?])([A-Z])", r"([\).,!?])([A-Z])", r"([].,!?])([A-Z])"],
         )
     except Exception as error:
         raise ValueError(
-            f"Exception: {error}. Could not clean and format lyrics, please review your response."
+            f"Exception: {error}. Lyrics could not be extracted, cleaned, and formatted. Please review your response object."
         )
-    return lyrics
+    return cleaned_lyrics
 
 
 def remove_end_digits(content):
