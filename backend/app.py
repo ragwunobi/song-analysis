@@ -15,16 +15,18 @@ def search_song(name):
 def get_songs(
     name, start_page=3, per_page=2, page_limit=5, page_increment=1, features=True
 ):
-    """Get an artist's song data as a list - title, features, path, and lyrics
+    """
+    Get an artist's songs. Returns the title, artists, path, and lyrics for each song.
     Parameters:
-    name(str): Input string of artist's name
-    start_page(int): Optional starting page parameter for request
-    per_page(int): Optional # of results per page parameter for request
-    page_limit(int): Optional limit on # of pages requested
-    page_increment(int): Optional # of pages incrementented by between requests
-    features(bool): Optional boolean flag to get featured artis
+    - name(str): An artist's name.
+    - start_page(int, optional): A starting page number.
+    - per_page(int, optional): The number of results per page.
+    - page_limit(int, optional): The number of pages to limit to.
+    - page_increment(int, optional): The number of pages to increment by.
+    - features(bool, optional): A flag to get featured artists.
+
     Returns:
-    song_data(list(list)): Title, primary artists, featured artists, path, and lyrics for each song found
+    - song_data(list(list)): The title, primary artists, featured artists, path, and lyrics for each song.
     """
     params = {"per_page": per_page, "page": start_page}
     # List to store artist's song data
@@ -51,17 +53,24 @@ def get_featured_artists(
     features=True,
     features_limit=5,
 ):
-    """Get a dictionary that maps collaborator names to the names and number of songs they have with input artist
+    """
+    Get a dictionary of collaborator names (key) and the songs (value) they have with an artist.
     Parameters:
-    name(str): Input string of artist's name
-    start_page(int): Optional starting page parameter for request
-    per_page(int): Optional # of results per page parameter for request
-    page_limit(int): Optional limit on # of pages requested
-    page_increment(int): Optional # of pages incrementented by between requests
-    features(bool): Optional boolean flag to get featured artist
-    features_limit(int): Optional limit on # of collaborators pulled
+    - name(str): An artist's name.
+    - start_page(int, optional): A starting page number.
+    - per_page(int, optional): The number of results per page.
+    - page_limit(int, optional): The number of pages to limit to.
+    - page_increment(int, optional): The number of pages to increment by.
+    - features(bool, optional): OA flag to get featured artists.
+    - features_limit(int, optional: The number of collaborators to limit to.
+
     Returns:
-    artist_count(dict): Dictionary mapping collaborator names to the names and number of songs they have with the input artist
+    - collaborator_freq(dict): A dictionary mapping collaborator names to a list, where the first item is the number of songs (n) with the input artist, followed by the names of the n songs.
+
+    Raises:
+    - IndexError: If song data cannot be indexed for title, primary artists, or featured artists.
+    - KeyError: If the song data dictionary is accessed with invalid keys.
+    - Exception: If an unexpected error occurs.
     """
     # Dictionary to store collaboration frequency
     collaborator_freq = {}
@@ -78,12 +87,16 @@ def get_featured_artists(
                 title = song_data[song_index][0]
                 primary_artists = song_data[song_index][2]
                 featured_artists = song_data[song_index][1]
-            except IndexError:
-                raise Exception("Index error. Song data could not be found.")
-            except KeyError:
-                raise Exception("Key Error. Song data could not be found.")
+            except IndexError as index_error:
+                raise Exception(
+                    f"Index error: {index_error}. Song data could not be indexed for title, primary artists, or featured_artists."
+                )
+            except KeyError as key_error:
+                raise Exception(
+                    f"Key Error: {key_error}. Key used to access song data was invalid."
+                )
             except Exception as error:
-                raise Exception("Apologies, song data could not be found.")
+                raise Exception(f"An unexpected error occurred: {error}.")
         # Add primary artist collaborators to dictionary
         generate_collaborator_freq(name, title, primary_artists, collaborator_freq)
         # Add featured artist collaborators to dictionary
@@ -93,12 +106,13 @@ def get_featured_artists(
 
 
 def generate_collaborator_freq(name, title, artists, collaborator_freq):
-    """Helper function to convert a list of artists into a dictionary that counts their frequency and lists song titles
+    """
+    A helper function to generate a dictionary of collaborator names (key) and the songs (value) they have with an artist.
     Parameters:
-    name(str): Input string of main artist's name
-    title(str): Input title of song the artist and collaborator are on
-    artist(list): List of artists that collaborated with input name artist
-    collaborator_freq: Dictionary of frequency counts of artist's collaborators
+    - name(str):  An artist's name.
+    - title(str): A song title featuring the artist and their collaborator.
+    - artists(list): A list of artists that collaborated to create the song with the input name artist.
+    - collaborator_freq: A dictionary mapping collaborator names to a list, where the first item is the number of songs (n) with the input artist, followed by the names of the n songs.
     """
     if artists:
         for collaborator in artists:
